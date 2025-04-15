@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>제스트 출석 관리 시스템</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- ① 글꼴 불러오기 -->
+<link href="https://cdn.jsdelivr.net/gh/webfontworld/gmarket/GmarketSans.css" rel="stylesheet" />
+<style>
+  body {
+      font-family: 'GmarketSans', sans-serif;
+      padding: 1.2rem;
+      margin: 0;
+      background-color: #f2f2f2;
+    }
+
+    .tab-buttons {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .tab-buttons button {
+      flex: 1;
+      padding: 0.9rem;
+      font-size: 1.2rem;
+      border: none;
+      border-radius: 8px;
+      background-color: #4CAF50;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .tab-buttons button:hover {
+      background-color: #45a049;
+    }
+
+    .tab {
+      display: none;
+      padding: 1rem;
+      background-color: white;
+      border-radius: 10px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+
+    .tab.active {
+      display: block;
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    /* 각 탭 버튼에 고유한 색상 부여 */
+.tab-buttons button:nth-child(1) {
+  background-color: #A3B18A; /* 출석부 */
+}
+.tab-buttons button:nth-child(2) {
+  background-color: #6C91BF; /* 경기 편성 */
+}
+.tab-buttons button:nth-child(3) {
+  background-color: #D8A7A7; /* 회원 관리 */
+}
+.tab-buttons button:nth-child(4) {
+  background-color: #E5C07B; /* 경기 점수 */
+}
+.tab-buttons button:nth-child(5) {
+  background-color: #A67B5B; /* 출석 관리 */
+}
+
+  </style>
+  <style>
+    /* 출석부 탭 내 select 요소 폰트와 패딩 확대 */
+    #attendanceTab select {
+      font-size: 1.3rem;
+      padding: 0.6rem 1rem;
+    }
+  
+    /* 출석부 탭 내 버튼들 폰트 및 패딩 확대 */
+    #attendanceTab button {
+      font-size: 1.3rem;
+      padding: 0.8rem 1.2rem;
+    }
+  
+    /* 출석 요약 영역도 가독성 개선 */
+    #attendanceSummary {
+      font-size: 1.2rem;
+      line-height: 1.8rem;
+    }
+  </style>
+  <style>
+    /* 경기 편성 탭 내 전체 글자 크기 확대 */
+    #matchTab {
+      font-size: 1.3rem;
+      line-height: 1.9rem;
+    }
+  
+    /* 입력 필드와 셀렉트 박스 크기 조정 */
+    #matchTab input,
+    #matchTab select {
+      font-size: 1.3rem;
+      padding: 0.6rem 1rem;
+    }
+  
+    /* 버튼 크기 확대 */
+    #matchTab button {
+      font-size: 1.3rem;
+      padding: 0.8rem 1.2rem;
+    }
+  
+    /* 결과 출력 영역 텍스트 크기 조정 */
+    #matchResult {
+      font-size: 1.2rem;
+      line-height: 1.8rem;
+    }
+    #suggestA, #suggestB {
+  font-size: 1.56rem;  /* 120% 확대 */
+  font-weight: bold;
+}
+  </style>
+  
+</head>
+<body>
+
+  <!-- 탭 버튼 -->
+  <div class="tab-buttons">
+    <button onclick="showTab('attendanceTab')">출석부</button>
+    <button onclick="showTab('matchTab')">경기<br>편성<br>1경기</button>
+    <button onclick="showTab('memberTab')">회원<br>관리</button>
+    <button onclick="showTab('scoreTab')">경기<br>점수</button>
+
+  </div>
+
+  <!-- 탭 콘텐츠 영역 -->
+  <div id="attendanceTab" class="tab active">
+    <h2>출석부</h2>
+    <!-- 이후 단계에서 내용 추가 -->
+     <!-- 날짜 선택 영역 -->
+<div>
+  <label>날짜 선택:</label><br>
+  <select id="yearSelect"></select>
+  <select id="monthSelect"></select>
+  <select id="daySelect"></select>
+  <span id="weekdayDisplay" style="margin-left: 1rem; font-weight: bold;"></span>
+</div>
+  <!-- 순위별 성명 선택 및 지각/조퇴 체크 -->
+<div style="margin-top: 1rem;">
+  <!-- 출석 명단 만들기 버튼 - 살짝 파란 계열로 변경 -->
+<button 
+onclick="loadRankedAttendance()" 
+style="background-color: #cce5ff; color: #003366; padding: 0.8rem 1.2rem; font-size: 1.3rem;">
+출석 명단 만들기
+</button>
+
+<!-- 출석 명단 전체 삭제 버튼 - 좀 더 연한 붉은 계열로 변경 -->
+<button 
+onclick="clearCurrentAttendanceInputs()" 
+style="margin-top: 1rem; background-color: #ffe5e5; color: #663333; padding: 0.8rem 1.2rem; font-size: 1.3rem;">
+출석 명단 전체 삭제
+</button>
+
+  <div id="attendanceList" style="margin-top: 1rem;"></div>
+  <button onclick="saveAttendance()" style="margin-top: 1rem; padding: 0.5rem 1rem;">출석 저장</button>
+  <div id="attendanceSummary" style="margin-top: 1rem; background: #f3f3f3; padding: 1rem; border-radius: 8px;"></div>
+</div>
+
+
+  </div>
+  <!-- 경기 편성 1경기 탭 -->
+<div id="matchTab" class="tab">
+    <h2>경기 편성 1경기</h2>
+  
+    <!-- 출석 날짜 선택 + 출석 인원 적용 -->
+    <div style="margin-bottom: 1rem; display: flex; align-items: center;">
+        <label>출석 날짜:</label>
+        <select id="matchDateSelect"></select>
+        <button onclick="loadMatchPlayers()" style="margin-left: 1rem;">출석 인원 적용하기</button>
+        <span style="margin-left: 3rem; font-weight: bold; font-size: 1.4rem;">총 인원: <span id="matchTotal">0</span>명</span>
+      </div>
+  
+    <!-- C팀 인원 설정 -->
+    <div style="margin-bottom: 2rem;">
+      C팀 인원 수: <input type="number" id="matchCInput" value="0" min="0" oninput="updateMatchCounts()">
+    </div>
+  
+    <!-- A팀 구역 -->
+<div style="background-color: #fff9c4; padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
+    <div id="matchAInfo" style="font-weight: bold; font-size: 1.2rem;">A팀 출석 인원: 0명</div>
+    <div style="margin-top: 0.7rem;">
+      <label style="font-weight: bold;">A팀 선발 인원:</label>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <button onclick="adjustStarter('A', 1)">▲</button>
+        <input type="number" id="matchAStarter" value="11" min="1" style="width: 60px; text-align: center;" readonly>
+        <button onclick="adjustStarter('A', -1)">▼</button>
+      </div>
+    </div>
+    <div style="margin-top: 0.7rem;">
+      <label><strong>A팀 포메이션 추천:</strong> <span id="suggestA" style="font-size: 1.2rem;"></span></label><br>
+      <label><strong>A팀 포메이션:</strong></label>
+      <select id="formationASelect" onchange="toggleCustomFormation('A')">
+        <option value="">-- 추천 선택 --</option>
+        <!-- 자동으로 추천값 추가됨 -->
+      </select>
+      <div id="formationACustom" style="display: none; margin-top: 0.5rem;">
+        DF: <input type="number" id="dfA" value="0" style="width: 50px;" />
+        MF: <input type="number" id="mfA" value="0" style="width: 50px;" />
+        FW: <input type="number" id="fwA" value="0" style="width: 50px;" />
+      </div>
+    </div>
+  </div>
+  
+  
+    <!-- B팀 구역 -->
+<div style="background-color: #e0f7da; padding: 1rem; border-radius: 10px;">
+    <div id="matchBInfo" style="font-weight: bold; font-size: 1.2rem;">B팀 출석 인원: 0명</div>
+    <div style="margin-top: 0.7rem;">
+      <label style="font-weight: bold;">B팀 선발 인원:</label>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <button onclick="adjustStarter('B', 1)">▲</button>
+        <input type="number" id="matchBStarter" value="11" min="1" style="width: 60px; text-align: center;" readonly>
+        <button onclick="adjustStarter('B', -1)">▼</button>
+      </div>
+    </div>
+    <div style="margin-top: 0.7rem;">
+      <label><strong>B팀 포메이션 추천:</strong> <span id="suggestB" style="font-size: 1.2rem;"></span></label><br>
+      <label><strong>B팀 포메이션:</strong></label>
+      <select id="formationBSelect" onchange="toggleCustomFormation('B')">
+        <option value="">-- 추천 선택 --</option>
+      </select>
+      <div id="formationBCustom" style="display: none; margin-top: 0.5rem;">
+        DF: <input type="number" id="dfB" value="0" style="width: 50px;" />
+        MF: <input type="number" id="mfB" value="0" style="width: 50px;" />
+        FW: <input type="number" id="fwB" value="0" style="width: 50px;" />
+      </div>
+    </div>
+  </div>
+  
+    <!-- A팀 포메이션 추천 + 선택 -->
+    <div style="margin-bottom: 1rem;">
+      <label><strong>A팀 포메이션 추천:</strong> <span id="suggestA">-</span></label><br>
+      <label><strong>A팀 포메이션:</strong></label>
+      <select id="formationASelect" onchange="toggleCustomFormation('A')">
+        <option value="">-- 추천 선택 --</option>
+        <option value="4-4-2">4-4-2</option>
+        <option value="4-3-3">4-3-3</option>
+        <option value="3-5-2">3-5-2</option>
+        <option value="custom">직접 입력</option>
+      </select>
+      <div id="formationACustom" style="display: none; margin-top: 0.5rem;">
+        DF: <input type="number" id="dfA" value="0" style="width: 50px;" />
+        MF: <input type="number" id="mfA" value="0" style="width: 50px;" />
+        FW: <input type="number" id="fwA" value="0" style="width: 50px;" />
+      </div>
+    </div>
+  
+    <!-- B팀 포메이션 추천 + 선택 -->
+    <div style="margin-bottom: 1rem;">
+      <label><strong>B팀 포메이션 추천:</strong> <span id="suggestB">-</span></label><br>
+      <label><strong>B팀 포메이션:</strong></label>
+      <select id="formationBSelect" onchange="toggleCustomFormation('B')">
+        <option value="">-- 추천 선택 --</option>
+        <option value="4-4-2">4-4-2</option>
+        <option value="4-3-3">4-3-3</option>
+        <option value="3-5-2">3-5-2</option>
+        <option value="custom">직접 입력</option>
+      </select>
+      <div id="formationBCustom" style="display: none; margin-top: 0.5rem;">
+        DF: <input type="number" id="dfB" value="0" style="width: 50px;" />
+        MF: <input type="number" id="mfB" value="0" style="width: 50px;" />
+        FW: <input type="number" id="fwB" value="0" style="width: 50px;" />
+      </div>
+    </div>
+  
+    <!-- 포지션 뽑기 -->
+    <div style="margin-bottom: 2rem;">
+      <button onclick="drawMatchPositions()">포지션 뽑기</button>
+    </div>
+  
+    <!-- 결과 출력 -->
+    <div id="matchResult" style="margin-top: 1.5rem;"></div>
+  </div>
+  
+  
+  <div id="memberTab" class="tab">
+    <h2>회원 관리</h2>
+  
+ <!-- 회원 명단 업로드 -->
+<div style="margin-bottom: 2.5rem; font-size: 1.5rem; line-height: 2.2rem;">
+    <label style="font-weight: bold;">회원 명단 업로드 (엑셀):</label><br>
+  
+    <!-- 파일 선택 영역 -->
+    <div style="margin: 1rem 0;">
+      <input type="file" id="excelFileInput" accept=".xlsx, .xls"
+        style="font-size: 1.4rem; padding: 0.6rem 1rem; border-radius: 6px;"
+        onchange="updateSelectedFileName(this)">
+      <div id="fileNameDisplay" style="margin-top: 0.5rem; font-size: 1.5rem; color: #555;"></div>
+    </div>
+  
+    <!-- 버튼 그룹 -->
+    <div style="display: flex; flex-wrap: wrap; gap: 1.2rem; margin-top: 1.5rem;">
+      <button onclick="downloadMemberList()" style="flex: 1 1 45%; padding: 1.2rem; font-size: 1.3rem;">회원 명단 보기</button>
+      <button onclick="toggleEditTeam()" style="flex: 1 1 45%; padding: 1.2rem; font-size: 1.3rem;">회원 소속 변경</button>
+      <button onclick="toggleIndividualDelete()" style="flex: 1 1 45%; padding: 1.2rem; font-size: 1.3rem;">회원 개별 삭제</button>
+      <button onclick="deleteAllMembers()" style="flex: 1 1 45%; padding: 1.2rem; font-size: 1.3rem;">회원 명단<br>전체 삭제</button>
+    </div>
+  </div>
+  
+  <!-- 회원 직접 추가 -->
+<div style="margin-top: 3rem; margin-bottom: 2rem; font-size: 1.5rem;">
+    <label style="font-weight: bold; display: block; margin-bottom: 1rem;">회원 직접 추가:</label>
+  
+    <input type="text" id="manualName" placeholder="성명 입력"
+      style="width: 160px; font-size: 1.3rem; padding: 0.6rem; margin-right: 1rem; margin-bottom: 1rem;" />
+    
+    <input type="text" id="manualTeam" placeholder="소속 입력"
+      style="width: 200px; font-size: 1.3rem; padding: 0.6rem; margin-right: 1rem; margin-bottom: 1rem;" />
+  
+    <br>
+    <button onclick="addManualMember()"
+      style="padding: 0.7rem 1.4rem; font-size: 1.3rem;">회원 직접 추가</button>
+  </div>
+  
+  
+  
+    <!-- 회원 명단 표시 -->
+    <div id="memberListDisplay" style="margin-top:1rem;"></div>
+  </div>
+  
+
+  </div>
+<!-- 경기 점수 탭 시작 -->
+<!-- ✅ 경기 점수 탭 전체 구조 -->
+<div id="scoreTab" class="tab">
+    <h2>경기 점수</h2>
+  
+    <!-- 시즌 설정 -->
+    <div style="margin-bottom: 1rem; display: flex; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+      <div style="flex: 1;">
+        <label style="font-size: 1.3rem;">시즌 시작일:</label><br>
+        <input type="date" id="seasonStart" value="2025-03-01" style="font-size: 1.3rem; padding: 0.5rem;">
+        <br><br>
+        <label style="font-size: 1.3rem;">시즌 마감일:</label><br>
+        <input type="date" id="seasonEnd" value="2026-02-28" style="font-size: 1.3rem; padding: 0.5rem;">
+      </div>
+  
+      <!-- 포상금 설정 버튼 -->
+      <div style="align-self: center;">
+        <button onclick="openRewardSetting()" style="padding: 0.7rem 1.5rem; font-size: 1.1rem;">포상금<br>설정</button>
+      </div>
+    </div>
+  
+    <!-- 포상금 설정 입력 영역 -->
+    <div id="rewardSettingArea" style="display: none; margin-top: 1.5rem;"></div>
+  
+    <!-- 출석 관리 버튼 + 영역 -->
+    <div style="margin-bottom: 1.5rem;">
+      <button onclick="toggleAttendanceHistory()" style="padding: 0.8rem 1.2rem; font-size: 1.1rem;">출석 관리</button>
+    </div>
+    <div id="attendanceHistoryArea" style="display: none; margin-top: 1.5rem; overflow: auto; max-height: 500px; max-width: 100%; border: 1px solid #ccc;"></div>
+  
+    <!-- TOP10 순위 보기 -->
+    <div style="margin-bottom: 1.5rem;">
+      <button onclick="showTop10()" style="font-size: 1.3rem; padding: 1rem 1.5rem;">TOP10 순위 보기</button>
+      <div id="top10Display" style="margin-top: 1rem; background: #fff8e1; padding: 1rem; border-radius: 8px;"></div>
+    </div>
+  
+    <!-- 전체 회원 점수 확인 -->
+    <div style="margin-bottom: 2rem;">
+      <button onclick="showAllScores()" style="font-size: 1.3rem; padding: 1rem 1.5rem;">전체 회원 점수 확인</button>
+      <div id="allScoresArea" style="margin-top: 1rem;"></div>
+      <canvas id="scoreChart" height="300" style="width:100%; max-height:400px;"></canvas>
+    </div>
+  </div>
+  
+  
+
+  <!-- JS 코드 -->
+  <script>
+    
+    function showTab(tabId) {
+  const tabs = document.querySelectorAll('.tab');
+  tabs.forEach(tab => tab.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+
+  // ✅ 경기 편성 탭을 열 때만 날짜 다시 불러오기
+  if (tabId === 'matchTab') {
+    populateMatchDateList();
+  }
+}
+    // 날짜 선택 초기화
+const yearSelect = document.getElementById("yearSelect");
+const monthSelect = document.getElementById("monthSelect");
+const daySelect = document.getElementById("daySelect");
+const weekdayDisplay = document.getElementById("weekdayDisplay");
+
+function setupDateListeners() {
+  const yearSelect = document.getElementById("yearSelect");
+  const monthSelect = document.getElementById("monthSelect");
+  const daySelect = document.getElementById("daySelect");
+
+  const handler = () => {
+    updateWeekday();                 // 요일 갱신
+    clearCurrentAttendanceInputs(); // 입력 초기화
+    updateSelectOptions(document.querySelectorAll('.name-select'));
+  };
+
+  yearSelect.addEventListener("change", handler);
+  monthSelect.addEventListener("change", handler);
+  daySelect.addEventListener("change", handler);
+}
+function adjustStarter(team, delta) {
+  const input = document.getElementById(`match${team}Starter`);
+  let value = parseInt(input.value || 0);
+  value += delta;
+  if (value < 1) value = 1;
+  input.value = value;
+  suggestFormation(team);
+}
+function toggleCustomFormation(team) {
+  const select = document.getElementById(`formation${team}Select`);
+  const customDiv = document.getElementById(`formation${team}Custom`);
+
+  if (select.value === "custom") {
+    customDiv.style.display = "block";
+  } else {
+    customDiv.style.display = "none";
+  }
+}
+
+
+function populateDateSelectors() {
+  const now = new Date();
+  const thisYear = now.getFullYear();
+
+  // 연도는 올해만 선택 가능
+  yearSelect.innerHTML = `<option value="${thisYear}">${thisYear}년</option>`;
+
+  // 월 초기화
+  monthSelect.innerHTML = "";
+  for (let m = 1; m <= 12; m++) {
+    const option = document.createElement("option");
+    option.value = m;
+    option.textContent = `${m}월`;
+    monthSelect.appendChild(option);
+  }
+
+  // 일 초기화
+  daySelect.innerHTML = "";
+  for (let d = 1; d <= 31; d++) {
+    const option = document.createElement("option");
+    option.value = d;
+    option.textContent = `${d}일`;
+    daySelect.appendChild(option);
+  }
+
+  // 오늘 날짜 기본값 설정
+  monthSelect.value = now.getMonth() + 1;
+  daySelect.value = now.getDate();
+  updateWeekday();
+
+}
+function loadRankedAttendance() {
+  if (memberList.length === 0) {
+    alert("먼저 회원 명단을 업로드하세요.");
+    return;
+  }
+
+  const container = document.getElementById("attendanceList");
+  container.innerHTML = "";
+
+  const table = document.createElement("table");
+  table.style.borderCollapse = "collapse";
+  table.style.width = "100%";
+  table.innerHTML = "<tr><th>순위</th><th>성명 선택</th><th>비회원 입력</th><th>지각</th><th>조퇴</th></tr>";
+
+  for (let i = 0; i < 30; i++) {
+    const row = document.createElement("tr");
+
+    const rankCell = document.createElement("td");
+    rankCell.textContent = `${i + 1}등`;
+
+    // 콤보박스 (성명 선택)
+    const select = document.createElement("select");
+    select.className = "name-select";
+    select.dataset.index = i;
+
+    const defaultOption = document.createElement("option");
+    defaultOption.value = "";
+    defaultOption.textContent = "-- 선택 --";
+    select.appendChild(defaultOption);
+
+    const sortedList = [...memberList].sort((a, b) => a.name.localeCompare(b.name, "ko"));
+
+    // 현재까지 선택된 이름들 확인
+    const selectedNames = Array.from(document.querySelectorAll(".name-select"))
+      .map(sel => sel.value)
+      .filter(name => name !== "");
+
+    // 중복 제거하며 옵션 추가
+    sortedList.forEach(member => {
+      if (selectedNames.includes(member.name)) return;
+
+      const option = document.createElement("option");
+      option.value = member.name;
+      option.textContent = member.name;
+      select.appendChild(option);
+    });
+
+    const selectCell = document.createElement("td");
+    selectCell.appendChild(select);
+
+    // 비회원 직접 입력
+    const input = document.createElement("input");
+    input.type = "text";
+    input.placeholder = "비회원 입력";
+    input.className = "manual-input";
+    input.dataset.index = i;
+
+    const inputCell = document.createElement("td");
+    inputCell.appendChild(input);
+
+    // 지각 체크
+    const lateCheck = document.createElement("input");
+    lateCheck.type = "checkbox";
+    lateCheck.className = "late-check";
+    lateCheck.dataset.index = i;
+
+    const lateCell = document.createElement("td");
+    lateCell.appendChild(lateCheck);
+
+    // 조퇴 체크
+    const leaveCheck = document.createElement("input");
+    leaveCheck.type = "checkbox";
+    leaveCheck.className = "leave-check";
+    leaveCheck.dataset.index = i;
+
+    const leaveCell = document.createElement("td");
+    leaveCell.appendChild(leaveCheck);
+
+    // 행에 모든 셀 추가
+    row.appendChild(rankCell);
+    row.appendChild(selectCell);
+    row.appendChild(inputCell);
+    row.appendChild(lateCell);
+    row.appendChild(leaveCell);
+
+    table.appendChild(row);
+  }
+
+  container.appendChild(table);
+
+  // 이벤트 바인딩
+  const selects = container.querySelectorAll(".name-select");
+  selects.forEach(select => {
+    select.addEventListener("change", () => {
+      updateSelectOptions(selects);
+      updateSummary();
+    });
+  });
+
+  const inputs = container.querySelectorAll(".manual-input");
+  inputs.forEach(input => input.addEventListener("input", updateSummary));
+
+  const checkboxes = container.querySelectorAll(".late-check, .leave-check");
+  checkboxes.forEach(chk => chk.addEventListener("change", updateSummary));
+
+  updateSummary();
+}
+
+
+let matchPlayers = []; // 1경기 참가자 저장용
+
+function loadMatchPlayers() {
+  const date = document.getElementById("matchDateSelect").value;
+
+  if (!window.attendanceHistoryData || !attendanceHistoryData[date]) {
+    alert("선택한 날짜에 출석 정보가 없습니다.");
+    return;
+  }
+
+  // ✅ 비회원 포함 전체 출석 명단 사용
+  matchPlayers = [...attendanceHistoryData[date]];
+// 출석 인원에 맞게 A/B팀 선발 인원 기본 설정
+const total = matchPlayers.length;
+const cNum = parseInt(document.getElementById("matchCInput").value || 0);
+const rest = Math.max(0, total - cNum);
+const aNum = Math.ceil(rest / 2);
+const bNum = Math.floor(rest / 2);
+
+// A팀 선발 인원: 출석 인원과 같거나 최대 11명
+document.getElementById("matchAStarter").value = Math.min(aNum, 10);
+// B팀 선발 인원: 출석 인원과 같거나 최대 11명
+document.getElementById("matchBStarter").value = Math.min(bNum, 10);
+  updateMatchCounts(); // 팀 인원 계산 함수 호출
+}
+function updateMatchCounts() {
+  const total = matchPlayers.length;
+  const cNum = parseInt(document.getElementById("matchCInput").value || 0);
+  const rest = Math.max(0, total - cNum);
+  const aNum = Math.ceil(rest / 2);
+  const bNum = Math.floor(rest / 2);
+
+  document.getElementById("matchTotal").textContent = total;
+  document.getElementById("matchA").textContent = aNum;
+  document.getElementById("matchB").textContent = bNum;
+  document.getElementById("matchC").textContent = cNum;
+}
+function suggestFormation(team) {
+  const starter = parseInt(document.getElementById(`match${team}Starter`).value || 0);
+  const target = document.getElementById(`suggest${team}`);
+  const select = document.getElementById(`formation${team}Select`);
+  const list = {
+    12: ["4-5-2", "4-4-3", "3-4-4"],
+    11: ["4-4-2", "4-3-3", "3-5-2", "3-4-3"], 
+    10: ["4-4-1", "3-4-2", "3-5-1", "4-3-2"],
+    9: ["3-4-1", "4-3-1", "3-3-2"],
+    8: ["3-3-1", "2-4-1", "4-2-1"],
+    7: ["3-3-0", "2-3-1", "3-2-1"]
+  };
+  const recommended = list[starter] || [];
+
+  // 추천 포메이션 텍스트 출력 (굵게 + 확대)
+  target.textContent = recommended.join(", ");
+
+  // 셀렉트 박스 옵션 초기화
+  select.innerHTML = '<option value="">-- 추천 선택 --</option>';
+
+  // 추천 포메이션을 옵션으로 추가
+  recommended.forEach(form => {
+    const option = document.createElement("option");
+    option.value = form;
+    option.textContent = form;
+    select.appendChild(option);
+  });
+
+  // '직접 입력' 옵션 추가
+  const customOption = document.createElement("option");
+  customOption.value = "custom";
+  customOption.textContent = "직접 입력";
+  select.appendChild(customOption);
+}
+let formationA = null;
+let formationB = null;
+
+function drawMatchPositions() {
+  // 출석한 인원 불러오기
+  const players = [...matchPlayers];
+  const restCount = parseInt(document.getElementById("matchCInput").value || 0);
+  const playingPlayers = players.slice(0, players.length - restCount);
+  const rest = players.slice(players.length - restCount);
+
+  // 팀 나누기 (짝수 인덱스 A팀, 홀수 인덱스 B팀)
+  const teamA = playingPlayers.filter((_, i) => i % 2 === 0);
+  const teamB = playingPlayers.filter((_, i) => i % 2 === 1);
+
+  // 포메이션 불러오기
+  const formationASelect = document.getElementById("formationASelect").value;
+  const formationBSelect = document.getElementById("formationBSelect").value;
+
+  if (formationASelect === "custom") {
+    const df = parseInt(document.getElementById("dfA").value || 0);
+    const mf = parseInt(document.getElementById("mfA").value || 0);
+    const fw = parseInt(document.getElementById("fwA").value || 0);
+    formationA = `${df}-${mf}-${fw}`;
+  } else {
+    formationA = formationASelect || "-";
+  }
+
+  if (formationBSelect === "custom") {
+    const df = parseInt(document.getElementById("dfB").value || 0);
+    const mf = parseInt(document.getElementById("mfB").value || 0);
+    const fw = parseInt(document.getElementById("fwB").value || 0);
+    formationB = `${df}-${mf}-${fw}`;
+  } else {
+    formationB = formationBSelect || "-";
+  }
+
+  // 결과 HTML 출력
+  let html = `<h3>A팀 (${formationA})</h3><ul>${teamA.map(p => `<li>${p.name}</li>`).join("")}</ul>`;
+  html += `<h3>B팀 (${formationB})</h3><ul>${teamB.map(p => `<li>${p.name}</li>`).join("")}</ul>`;
+  if (rest.length > 0) {
+    html += `<h3>휴식</h3><ul>${rest.map(p => `<li>${p.name}</li>`).join("")}</ul>`;
+  }
+
+  document.getElementById("matchResult").innerHTML = html;
+}
+
+
+
+function populateMatchDateList() {
+  const select = document.getElementById("matchDateSelect");
+  select.innerHTML = "";
+
+  if (!attendanceHistoryData) return;
+
+  const dates = Object.keys(attendanceHistoryData).sort();
+  dates.forEach(date => {
+    const option = document.createElement("option");
+    option.value = date;
+    option.textContent = date;
+    select.appendChild(option);
+  });
+}
+
+
+function assignTeams() {
+  const numPlayers = parseInt(document.getElementById("matchCount").value);
+  const formation = document.getElementById("formationSelect").value;
+  const [df, mf, fw] = formation.split("-").map(Number);
+
+  const selected = [...savedAttendanceData] // 출석 저장된 명단
+    .filter(p => memberList.map(m => m.name).includes(p.name))
+    .slice(0, numPlayers);
+
+  if (selected.length < numPlayers) {
+    alert(`출석 인원이 ${numPlayers}명보다 적습니다.`);
+    return;
+  }
+
+  // 셔플
+  const shuffled = [...selected].sort(() => Math.random() - 0.5);
+
+  const GK = shuffled[0].name;
+  const DFs = shuffled.slice(1, 1 + df).map(p => p.name);
+  const MFs = shuffled.slice(1 + df, 1 + df + mf).map(p => p.name);
+  const FWs = shuffled.slice(1 + df + mf, 1 + df + mf + fw).map(p => p.name);
+
+  // 팀 분할 (나머지 인원 자동 A/B 배정)
+  const teamA = [], teamB = [];
+  shuffled.forEach((p, i) => {
+    if (i % 2 === 0) teamA.push(p.name);
+    else teamB.push(p.name);
+  });
+
+  let html = `<h3>포지션 배정 (${formation})</h3>`;
+  html += `<p><strong>GK:</strong> ${GK}</p>`;
+  html += `<p><strong>DF:</strong> ${DFs.join(", ")}</p>`;
+  html += `<p><strong>MF:</strong> ${MFs.join(", ")}</p>`;
+  html += `<p><strong>FW:</strong> ${FWs.join(", ")}</p>`;
+
+  html += `<h3>A팀</h3><ul>${teamA.map(n => `<li>${n}</li>`).join("")}</ul>`;
+  html += `<h3>B팀</h3><ul>${teamB.map(n => `<li>${n}</li>`).join("")}</ul>`;
+
+  document.getElementById("teamResult").innerHTML = html;
+}
+
+
+function clearCurrentAttendanceInputs() {
+  for (let i = 0; i < 30; i++) {
+    const select = document.querySelector(`.name-select[data-index='${i}']`);
+    const input = document.querySelector(`.manual-input[data-index='${i}']`);
+    const late = document.querySelector(`.late-check[data-index='${i}']`);
+    const leave = document.querySelector(`.leave-check[data-index='${i}']`);
+
+    if (select) select.value = "";
+    if (input) input.value = "";
+    if (late) late.checked = false;
+    if (leave) leave.checked = false;
+  }
+
+  updateSummary(); // 요약도 초기화
+}
+
+function updateSelectOptions(selects) {
+  const selectedNames = Array.from(selects)
+    .map(select => select.value)
+    .filter(name => name !== "");
+
+  selects.forEach(select => {
+    const current = select.value;
+    Array.from(select.options).forEach(option => {
+      if (option.value === "") return;
+      option.disabled = selectedNames.includes(option.value) && option.value !== current;
+    });
+  });
+}
+
+function updateSelectOptions(selects) {
+  const selectedNames = Array.from(selects)
+    .map(select => select.value)
+    .filter(name => name !== "");
+
+  selects.forEach(select => {
+    const current = select.value;
+    Array.from(select.options).forEach(option => {
+      if (option.value === "") return;
+      option.disabled = selectedNames.includes(option.value) && option.value !== current;
+    });
+  });
+}
+function updateSummary() {
+  const summaryDiv = document.getElementById("attendanceSummary");
+  let summaryHtml = "<strong>현재 출석 상태 요약:</strong><br>";
+
+  for (let i = 0; i < 30; i++) {
+    const select = document.querySelector(`.name-select[data-index='${i}']`);
+    const input = document.querySelector(`.manual-input[data-index='${i}']`);
+    const late = document.querySelector(`.late-check[data-index='${i}']`).checked;
+    const leave = document.querySelector(`.leave-check[data-index='${i}']`).checked;
+
+    const name = input.value.trim() !== "" ? input.value.trim() : select.value;
+    if (name === "") continue;
+
+    const flags = [];
+    if (late) flags.push("지각");
+    if (leave) flags.push("조퇴");
+
+    summaryHtml += `${i + 1}등: ${name} ${flags.length > 0 ? "(" + flags.join(", ") + ")" : ""}<br>`;
+  }
+
+  summaryDiv.innerHTML = summaryHtml;
+}
+
+let savedAttendanceData = [];
+
+function saveAttendance() {
+  savedAttendanceData = [];
+
+  for (let i = 0; i < 30; i++) {
+    const select = document.querySelector(`.name-select[data-index='${i}']`);
+    const input = document.querySelector(`.manual-input[data-index='${i}']`);
+    const late = document.querySelector(`.late-check[data-index='${i}']`).checked;
+    const leave = document.querySelector(`.leave-check[data-index='${i}']`).checked;
+
+    const name = input.value.trim() !== "" ? input.value.trim() : select.value;
+    if (name === "") continue;
+
+    const isPartial = late || leave;
+    const score = isPartial ? 5 : 10;
+
+    savedAttendanceData.push({
+      rank: i + 1,
+      name,
+      late,
+      leave,
+      score
+    });
+  }
+
+  // 날짜 키
+  const year = document.getElementById("yearSelect").value;
+  const month = document.getElementById("monthSelect").value.padStart(2, '0');
+  const day = document.getElementById("daySelect").value.padStart(2, '0');
+  const dateKey = `${year}-${month}-${day}`;
+
+  // 저장
+  if (!window.attendanceHistoryData) window.attendanceHistoryData = {};
+  window.attendanceHistoryData[dateKey] = [...savedAttendanceData];
+
+  // ✅ localStorage에도 저장
+  localStorage.setItem("attendanceHistoryData", JSON.stringify(attendanceHistoryData));
+
+  alert(`출석 정보가 저장되었습니다 (${dateKey})`);
+  renderAttendanceHistory();
+
+  // ✅ 아래 세 줄이 모두 존재해야 합니다.
+  updateTeamCounts();       
+  populateDateSelectors();  
+  setupDateListeners();     
+
+  // ✅ 이 줄도 반드시 포함되어야 함
+  populateMatchDateList();  // ← 이것이 경기 편성 탭에 날짜 목록을 넣는 핵심
+}
+
+
+
+function updateTeamCounts() {
+  const total = savedAttendanceData.filter(p => memberList.map(m => m.name).includes(p.name)).length;
+  const cNum = parseInt(document.getElementById("cTeamInput").value || 0);
+  const rest = Math.max(0, total - cNum);
+  const aNum = Math.ceil(rest / 2);
+  const bNum = Math.floor(rest / 2);
+
+  document.getElementById("totalCount").textContent = total;
+  document.getElementById("cCount").textContent = cNum;
+  document.getElementById("aCount").textContent = aNum;
+  document.getElementById("bCount").textContent = bNum;
+}
+
+
+function renderAttendanceHistory() {
+  const container = document.getElementById("attendanceHistory");
+  if (!window.attendanceHistoryData || Object.keys(attendanceHistoryData).length === 0) {
+  container.innerHTML = "<p>저장된 출석 데이터가 없습니다.</p>";
+  return;
+}
+
+
+  // 날짜 목록 (열)
+  const dates = Object.keys(attendanceHistoryData).sort(); // 날짜순 정렬
+
+  // 회원 목록 (행) - 가나다순
+  const sortedMembers = [...memberList].sort((a, b) => a.name.localeCompare(b.name, "ko"));
+
+  // 표 생성
+  let html = "<table border='1' cellpadding='6' style='border-collapse: collapse; min-width: 600px; text-align: center;'>";
+
+  // 헤더
+  html += "<thead><tr><th>성명</th>";
+  dates.forEach(date => {
+    html += `<th>${date}</th>`;
+  });
+  html += "</tr></thead><tbody>";
+
+  // 행 생성
+  sortedMembers.forEach(member => {
+    html += `<tr><td>${member.name}</td>`;
+
+    dates.forEach(date => {
+      const records = attendanceHistoryData[date];
+      const entry = records.find(r => r.name === member.name);
+
+      let status = "";
+      if (entry) {
+        if (entry.late || entry.leave) {
+          status = "지각"; // 지각 or 조퇴 or 둘 다 → 지각으로 표시
+        } else {
+          status = "참석";
+        }
+      }
+
+      html += `<td>${status}</td>`;
+    });
+
+    html += "</tr>";
+  });
+
+  html += "</tbody></table>";
+  container.innerHTML = html;
+}
+
+
+
+function updateWeekday() {
+  const y = parseInt(yearSelect.value);
+  const m = parseInt(monthSelect.value) - 1; // 0-indexed
+  const d = parseInt(daySelect.value);
+  const date = new Date(y, m, d);
+  const weekday = ["일", "월", "화", "수", "목", "금", "토"][date.getDay()];
+  
+  weekdayDisplay.textContent = `${weekday}요일`;
+
+  // 색상 지정
+  let color = "black";
+  if (weekday === "토") color = "blue";
+  if (weekday === "일") color = "red";
+  weekdayDisplay.style.color = color;
+}
+
+// 이벤트 바인딩
+yearSelect.addEventListener("change", updateWeekday);
+monthSelect.addEventListener("change", updateWeekday);
+daySelect.addEventListener("change", updateWeekday);
+
+populateDateSelectors();
+setupDateListeners();
+let memberList = [];
+
+document.getElementById("excelFileInput").addEventListener("change", function (e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: "array" });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+    const memberData = [];
+    let row = 3;
+
+    while (true) {
+      const nameCell = sheet[`B${row}`];
+      const teamCell = sheet[`D${row}`];
+      if (!nameCell && !teamCell) break;
+
+      const name = nameCell ? nameCell.v.trim() : "";
+      const team = teamCell ? teamCell.v.trim() : "";
+
+      if (name !== "") {
+        memberData.push({ name, team });
+      }
+      row++;
+    }
+
+    // ✅ 기존 memberList와 병합
+    const existingNames = new Set(memberList.map(m => m.name));
+    const newMembers = memberData.filter(m => !existingNames.has(m.name));
+    memberList = [...memberList, ...newMembers];
+
+    // ✅ 저장
+    localStorage.setItem("memberList", JSON.stringify(memberList));
+
+    alert("엑셀 파일의 회원 명단을 기존 명단에 추가했습니다.");
+    downloadMemberList(); // 화면 출력 갱신
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+
+
+
+function downloadMemberList() {
+  const listArea = document.getElementById("memberListDisplay");
+
+  if (memberList.length === 0) {
+    listArea.innerHTML = "회원 명단이 없습니다.";
+    return;
+  }
+
+  // 가나다순 정렬
+  memberList.sort((a, b) => a.name.localeCompare(b.name, "ko"));
+
+  let html = "<strong>회원 명단:</strong><br><br>";
+  html += `
+    <table border="1" cellpadding="6" style="border-collapse: collapse; width: 100%; text-align: center;">
+      <thead style="background-color: #f0f0f0;">
+        <tr>
+          <th>성명</th>
+          <th>소속</th>
+          ${showEditTeamButtons ? "<th>수정</th>" : ""}
+          ${showDeleteButtons ? "<th>삭제</th>" : ""}
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  memberList.forEach((m, i) => {
+    html += `<tr>
+      <td>${m.name}</td>
+      <td id="teamCell${i}">
+        ${m.team || ""}
+        ${showEditTeamButtons ? `<button onclick="showEditTeamInput(${i})" style="margin-left: 6px;">수정</button>` : ""}
+      </td>`;
+
+    if (showEditTeamButtons) {
+      html += `<td id="editCell${i}" style="display:none;">
+        <input type="text" id="newTeam${i}" placeholder="수정할 소속 입력" value="${m.team || ""}" />
+        <button onclick="saveEditedTeam(${i})">저장</button>
+      </td>`;
+    }
+
+    if (showDeleteButtons) {
+      html += `<td><button onclick="deleteMember(${i})" style="
+        background-color: #f8d7da;
+        color: #721c24;
+        border: none;
+        padding: 4px 10px;
+        border-radius: 6px;
+        cursor: pointer;"
+        onmouseover="this.style.backgroundColor='#f5c6cb'" onmouseout="this.style.backgroundColor='#f8d7da'">삭제</button></td>`;
+    }
+
+    html += `</tr>`;
+  });
+
+  html += "</tbody></table>";
+  listArea.innerHTML = html;
+}
+
+
+function addManualMember() {
+  const nameInput = document.getElementById("manualName");
+  const teamInput = document.getElementById("manualTeam");
+
+  const name = nameInput.value.trim();
+  const team = teamInput.value.trim();
+
+  if (name === "") {
+    alert("성명을 입력해주세요.");
+    return;
+  }
+
+  // 회원 추가
+  memberList.push({ name, team });
+
+  // ✅ 저장
+  localStorage.setItem("memberList", JSON.stringify(memberList));
+
+  // 입력창 초기화
+  nameInput.value = "";
+  teamInput.value = "";
+
+  alert(`${name} 님이 추가되었습니다.`);
+  downloadMemberList();
+}
+
+
+
+
+// 🔽 여기에 함께 추가
+let showDeleteButtons = false;
+let showEditTeamButtons = false;
+
+function toggleIndividualDelete() {
+  showDeleteButtons = !showDeleteButtons;
+  downloadMemberList(); // 다시 출력
+}
+
+function toggleEditTeam() {
+  showEditTeamButtons = !showEditTeamButtons;
+  downloadMemberList(); // 다시 출력
+}
+function showEditTeamInput(index) {
+  const editCell = document.getElementById(`editCell${index}`);
+  if (editCell) editCell.style.display = "table-cell";
+}
+
+
+function deleteMember(index) {
+  const pw = prompt("비밀번호를 입력하세요:");
+  if (pw !== "0301") {
+    alert("비밀번호가 올바르지 않습니다.");
+    return;
+  }
+
+  if (!confirm("이 회원을 정말 삭제하시겠습니까?")) return;
+
+  memberList.splice(index, 1);
+
+  // ✅ 저장
+  localStorage.setItem("memberList", JSON.stringify(memberList));
+
+  downloadMemberList();
+  loadRankedAttendance(); // 출석부에도 반영
+}
+
+
+function saveEditedTeam(index) {
+  const newTeamInput = document.getElementById(`newTeam${index}`);
+  const newTeam = newTeamInput.value.trim();
+
+  if (memberList[index]) {
+    memberList[index].team = newTeam;
+
+    // ✅ 저장
+    localStorage.setItem("memberList", JSON.stringify(memberList));
+
+    alert(`소속이 '${newTeam}'(으)로 변경되었습니다.`);
+    downloadMemberList();
+  }
+}
+
+
+
+function deleteAllMembers() {
+  const pw = prompt("비밀번호를 입력하세요:");
+  if (pw !== "0301") {
+    alert("비밀번호가 올바르지 않습니다.");
+    return;
+  }
+
+  if (!confirm("정말로 모든 회원을 삭제하시겠습니까?")) return;
+
+  memberList = [];
+
+  // ✅ 저장
+  localStorage.setItem("memberList", JSON.stringify(memberList));
+
+  document.getElementById("memberListDisplay").innerHTML = "";
+  document.getElementById("excelFileInput").value = "";
+  alert("회원 명단이 모두 삭제되었습니다.");
+  loadRankedAttendance();
+}
+
+function assignTiedRanks(data) {
+  let rank = 1;
+  let skip = 0;
+  let prevScore = null;
+
+  return data.map((item, index) => {
+    if (item.score === prevScore) {
+      skip++;
+    } else {
+      rank += skip;
+      skip = 1;
+    }
+    prevScore = item.score;
+    return { ...item, rank: rank };
+  });
+}
+
+
+function showTop10() {
+  const startDate = document.getElementById("seasonStart").value;
+  const endDate = document.getElementById("seasonEnd").value;
+  if (!startDate || !endDate) {
+    alert("시즌 시작일과 마감일을 설정해주세요.");
+    return;
+  }
+
+  const allScores = getAllMemberScores();
+const sorted = assignTiedRanks([...allScores].sort((a, b) => b.score - a.score || a.name.localeCompare(b.name, "ko"))).slice(0, 10);
+
+  let html = `<strong>시즌 기간:</strong> ${startDate} ~ ${endDate}<br><br>`;
+  html += `
+    <table border="1" cellpadding="6" style="border-collapse: collapse; width:100%; text-align:center;">
+      <thead style="background-color:#eee;">
+        <tr>
+          <th>순위</th><th>이름</th><th>포상금 (예정)</th>
+        </tr>
+      </thead><tbody>
+  `;
+
+  sorted.forEach(p => {
+    const prize = prizeMap[p.rank] || 0;
+    html += `<tr>
+      <td>${p.rank}위</td>
+      <td>${p.name}</td>
+      <td>${prize.toLocaleString("ko-KR")}원</td>
+    </tr>`;
+  });
+
+  html += `</tbody></table>`;
+  document.getElementById("top10Display").innerHTML = html;
+}
+
+function getAllMemberScores() {
+  if (!window.attendanceHistoryData || !Array.isArray(memberList)) return [];
+
+  const memberNames = memberList.map(m => m.name); // 정식 회원 목록
+  const scores = {};
+
+  for (const date in attendanceHistoryData) {
+    attendanceHistoryData[date].forEach(entry => {
+      if (memberNames.includes(entry.name)) {
+        if (!scores[entry.name]) scores[entry.name] = 0;
+        scores[entry.name] += entry.score;
+      }
+    });
+  }
+
+  return Object.entries(scores).map(([name, score]) => ({ name, score }));
+}
+
+// 기본 포상금 설정 (수정 가능)
+let prizeMap = {
+  1: 120000,
+  2: 70000,
+  3: 60000,
+  4: 50000,
+  5: 50000,
+  6: 30000,
+  7: 30000,
+  8: 30000,
+  9: 30000,
+  10: 30000,
+};
+
+function openRewardSetting() {
+  const pw = prompt("포상금 설정을 위해 비밀번호를 입력하세요:");
+  if (pw !== "0301") {
+    alert("비밀번호가 올바르지 않습니다.\n관리자에게 문의하세요.");
+    return;
+  }
+
+  const container = document.getElementById("rewardSettingArea");
+  container.style.display = "block";
+
+  let html = "<strong>포상금 설정 (₩):</strong><br>";
+
+  for (let i = 1; i <= 10; i++) {
+    html += `${i}위: <input type="number" id="prize${i}" value="${prizeMap[i]}" style="width:100px;"> 원<br>`;
+  }
+
+  html += `<button onclick="savePrizeMap()" style="margin-top:10px;">저장</button>`;
+  container.innerHTML = html;
+}
+
+
+function savePrizeMap() {
+  for (let i = 1; i <= 10; i++) {
+    const input = document.getElementById(`prize${i}`);
+    const value = parseInt(input.value);
+    prizeMap[i] = isNaN(value) ? 0 : value;
+  }
+
+  document.getElementById("rewardSettingArea").innerHTML = "";
+  document.getElementById("rewardSettingArea").style.display = "none";
+  alert("포상금이 저장되었습니다.");
+}
+
+
+function showTop10() {
+  if (savedAttendanceData.length === 0) {
+    alert("출석 저장 후에 확인할 수 있습니다.");
+    return;
+  }
+
+  const startDate = document.getElementById("seasonStart").value;
+  const endDate = document.getElementById("seasonEnd").value;
+
+  if (!startDate || !endDate) {
+    alert("시즌 시작일과 마감일을 설정해주세요.");
+    return;
+  }
+  let memberNames = memberList.map(m => m.name);
+  let filtered = savedAttendanceData.filter(p => memberNames.includes(p.name));
+
+  // 합산 점수 정렬 (현재는 단일 출석 저장 기준으로 정렬)
+  const allScores = getAllMemberScores();
+const sorted = assignTiedRanks([...allScores].sort((a, b) => b.score - a.score || a.name.localeCompare(b.name, "ko"))).slice(0, 10);
+
+    let html = `<strong>시즌 기간:</strong> ${startDate} ~ ${endDate}<br><br>`;
+html += `
+  <table border="1" cellpadding="8" style="border-collapse: collapse; width: 100%; text-align: center;">
+    <thead style="background-color: #eee;">
+      <tr>
+        <th>순위</th>
+        <th>이름</th>
+        <th>포상금 (예정)</th>
+      </tr>
+    </thead>
+    <tbody>
+`;
+
+sorted.forEach((p) => {
+  const prize = prizeMap[p.rank] || 0;
+  const prizeStr = prize.toLocaleString("ko-KR") + "원";
+  html += `
+    <tr>
+      <td>${p.rank}위</td>
+      <td>${p.name}</td>
+      <td>${prizeStr}</td>
+    </tr>`;
+});
+
+html += `</tbody></table>`;
+document.getElementById("top10Display").innerHTML = html;
+
+}
+
+
+function showAllScores() {
+  const allScores = getAllMemberScores();
+  const sorted = assignTiedRanks([...allScores].sort((a, b) => b.score - a.score || a.name.localeCompare(b.name, "ko")));
+
+  // 테이블 출력
+  let maxScore = Math.max(...sorted.map(p => p.score));
+let html = `
+  <table border="1" cellpadding="6" style="border-collapse: collapse; width:100%; text-align:center;">
+    <thead style="background-color:#eee;">
+      <tr><th>순위</th><th>이름</th><th>점수</th><th>참여 정도</th></tr>
+    </thead><tbody>
+`;
+
+sorted.forEach(p => {
+  const percent = (p.score / maxScore) * 100;
+  html += `
+    <tr>
+      <td>${p.rank}위</td>
+      <td>${p.name}</td>
+      <td>${p.score}</td>
+      <td>
+        <div style="background:#eee; width:100%; height:20px; border-radius:4px; overflow:hidden;">
+          <div style="background:#4caf50; width:${percent}%; height:100%;"></div>
+        </div>
+      </td>
+    </tr>
+  `;
+});
+
+html += `</tbody></table>`;
+document.getElementById("allScoresArea").innerHTML = html;
+
+}
+
+
+function drawScoreChart(data) {
+  const ctx = document.getElementById("scoreChart").getContext("2d");
+  if (window.scoreChartInstance) {
+    window.scoreChartInstance.destroy();
+  }
+
+  const labels = data.map(p => p.name);
+  const scores = data.map(p => p.score);
+
+  window.scoreChartInstance = new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: labels,
+    datasets: [{
+      label: '참여 점수',
+      data: scores,
+      backgroundColor: 'rgba(75, 192, 192, 0.6)',
+      borderColor: 'rgba(75, 192, 192, 1)',
+      borderWidth: 1
+    }]
+  },
+  options: {
+    indexAxis: 'y', // 가로 막대그래프
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      title: {
+        display: true,
+        text: '회원별 출석 참여 점수',
+        font: { size: 14 }
+      }
+    },
+    scales: {
+      x: { beginAtZero: true, precision: 0 }
+    }
+  }
+});
+
+}
+
+function toggleAttendanceHistory() {
+  const area = document.getElementById("attendanceHistoryArea");
+  if (area.style.display === "none") {
+    renderAttendanceHistory(); // 테이블 생성
+    area.style.display = "block";
+  } else {
+    area.style.display = "none";
+  }
+}
+
+function renderAttendanceHistory() {
+  const container = document.getElementById("attendanceHistoryArea");
+  if (!window.attendanceHistoryData || Object.keys(attendanceHistoryData).length === 0) {
+    container.innerHTML = "<p>저장된 출석 데이터가 없습니다.</p>";
+    return;
+  }
+
+  const dates = Object.keys(attendanceHistoryData).sort();
+  const sortedMembers = [...memberList].sort((a, b) => a.name.localeCompare(b.name, "ko"));
+
+  let html = "<table border='1' cellpadding='6' style='border-collapse: collapse; min-width: 600px; text-align: center;'>";
+  html += "<thead><tr><th>성명</th>";
+  dates.forEach(date => {
+    html += `<th>${date}</th>`;
+  });
+  html += "</tr></thead><tbody>";
+
+  sortedMembers.forEach(member => {
+    html += `<tr><td>${member.name}</td>`;
+    dates.forEach(date => {
+      const records = attendanceHistoryData[date];
+      const entry = records.find(r => r.name === member.name);
+      let status = "";
+      if (entry) {
+        status = (entry.late || entry.leave) ? "지각" : "참석";
+      }
+      html += `<td>${status}</td>`;
+    });
+    html += "</tr>";
+  });
+
+  html += "</tbody></table>";
+  container.innerHTML = html;
+}
+
+  </script>
+<!-- XLSX 스크립트 추가 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+   window.addEventListener('DOMContentLoaded', () => {
+  // ✅ 출석 이력 복원
+  const savedData = localStorage.getItem("attendanceHistoryData");
+  if (savedData) {
+    try {
+      window.attendanceHistoryData = JSON.parse(savedData);
+      renderAttendanceHistory();
+      populateMatchDateList();
+    } catch (e) {
+      console.error("출석 기록 불러오기 오류:", e);
+    }
+  } else {
+    window.attendanceHistoryData = {};
+  }
+
+  // ✅ memberList 복원
+  const savedMembers = localStorage.getItem("memberList");
+  if (savedMembers) {
+    try {
+      memberList = JSON.parse(savedMembers);
+    } catch (e) {
+      console.error("회원 명단 불러오기 오류:", e);
+      memberList = [];
+    }
+  } else {
+    memberList = [];
+  }
+
+  // 포메이션 추천 자동 연결
+  document.getElementById("matchAStarter").addEventListener("input", () => suggestFormation("A"));
+  document.getElementById("matchBStarter").addEventListener("input", () => suggestFormation("B"));
+});
+
+
+  </script>
+  
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</body>
+</html>
