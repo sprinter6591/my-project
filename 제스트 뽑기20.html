@@ -479,7 +479,8 @@ function loadRankedAttendance() {
     const row = document.createElement("tr");
 
     const rankCell = document.createElement("td");
-    rankCell.textContent = `${i + 1}등`;
+    rankCell.textContent = String(i + 1).padStart(2, '0');
+    rankCell.style.whiteSpace = "nowrap";
 
     // 콤보박스 (성명 선택)
     const select = document.createElement("select");
@@ -502,24 +503,35 @@ function loadRankedAttendance() {
     sortedList.forEach(member => {
       if (selectedNames.includes(member.name)) return;
 
-      const option = document.createElement("option");
-      option.value = member.name;
-      option.textContent = member.name;
-      select.appendChild(option);
+      const nonMemberOption = document.createElement("option");
+nonMemberOption.value = "__비회원__";
+nonMemberOption.textContent = "비회원 입력";
+select.appendChild(nonMemberOption);
+
     });
 
     const selectCell = document.createElement("td");
-    selectCell.appendChild(select);
+selectCell.appendChild(select);
 
-    // 비회원 직접 입력
+// ✅ 여기에 추가
+select.addEventListener("change", () => {
+  const manualInput = input; // 위에서 만든 input과 연결
+  manualInput.style.display = (select.value === "__비회원__") ? "inline-block" : "none";
+  updateSelectOptions(selects);
+  updateSummary();
+});
+
+
     const input = document.createElement("input");
     input.type = "text";
-    input.placeholder = "비회원 입력";
+    input.placeholder = "비회원 이름 입력";
     input.className = "manual-input";
     input.dataset.index = i;
+    input.style.display = "none"; // 기본은 숨김
 
-    const inputCell = document.createElement("td");
-    inputCell.appendChild(input);
+const inputCell = document.createElement("td");
+inputCell.appendChild(input);
+
 
     // 지각 체크
     const lateCheck = document.createElement("input");
@@ -529,22 +541,6 @@ function loadRankedAttendance() {
 
     const lateCell = document.createElement("td");
     lateCell.appendChild(lateCheck);
-
-    // 조퇴 체크
-    const leaveCheck = document.createElement("input");
-    leaveCheck.type = "checkbox";
-    leaveCheck.className = "leave-check";
-    leaveCheck.dataset.index = i;
-
-    const leaveCell = document.createElement("td");
-    leaveCell.appendChild(leaveCheck);
-
-    // 행에 모든 셀 추가
-    row.appendChild(rankCell);
-    row.appendChild(selectCell);
-    row.appendChild(inputCell);
-    row.appendChild(lateCell);
-    row.appendChild(leaveCell);
 
     table.appendChild(row);
   }
@@ -766,16 +762,17 @@ function clearCurrentAttendanceInputs() {
 function updateSelectOptions(selects) {
   const selectedNames = Array.from(selects)
     .map(select => select.value)
-    .filter(name => name !== "");
+    .filter(name => name !== "" && name !== "__비회원__"); // 비회원 선택은 중복 허용
 
   selects.forEach(select => {
     const current = select.value;
     Array.from(select.options).forEach(option => {
       if (option.value === "") return;
-      option.disabled = selectedNames.includes(option.value) && option.value !== current;
+      option.hidden = selectedNames.includes(option.value) && option.value !== current;
     });
   });
 }
+
 
 function updateSelectOptions(selects) {
   const selectedNames = Array.from(selects)
@@ -824,19 +821,22 @@ function saveAttendance() {
     const late = document.querySelector(`.late-check[data-index='${i}']`).checked;
     const leave = document.querySelector(`.leave-check[data-index='${i}']`).checked;
 
-    const name = input.value.trim() !== "" ? input.value.trim() : select.value;
-    if (name === "") continue;
+    const name = (select.value === "__비회원__") ? input.value.trim() : select.value;
+    const isNonMember = (select.value === "__비회원__");
+
 
     const isPartial = late || leave;
     const score = isPartial ? 5 : 10;
 
     savedAttendanceData.push({
-      rank: i + 1,
-      name,
-      late,
-      leave,
-      score
-    });
+  rank: i + 1,
+  name,
+  late,
+  leave: false, // 조퇴 제거했으니 항상 false
+  isNonMember,
+  score: isNonMember ? 0 : (late ? 5 : 10)
+});
+
   }
 
   // 날짜 키
