@@ -124,6 +124,17 @@
   font-size: 1.56rem;  /* 120% 확대 */
   font-weight: bold;
 }
+.my-custom-style {
+      background-color: #fdfbe8;
+      border: 2px solid #bbb;
+    }
+    .name-select {
+  transition: background-color 0.3s ease;
+}
+
+.name-select.flash {
+  background-color: #e0ffe0;
+}
   </style>
   
 </head>
@@ -395,7 +406,7 @@
 
   <!-- JS 코드 -->
   <script>
-    
+   
     function showTab(tabId) {
   const tabs = document.querySelectorAll('.tab');
   tabs.forEach(tab => tab.classList.remove('active'));
@@ -502,13 +513,12 @@ function loadRankedAttendance() {
   container.innerHTML = "";
 
   if (memberList.length === 0) {
-  alert("먼저 회원 명단을 업로드하세요.");
-  return;
-}
+    alert("먼저 회원 명단을 업로드하세요.");
+    return;
+  }
 
-// ✅ 이미 생성된 콤보 박스가 있다면 중복 생성 방지
-const existingSelect = document.querySelector("#attendanceList select.name-select");
-if (existingSelect) return;
+  // ✅ 이 위치가 맞습니다
+  if (document.getElementById("selectedTable")) return;
 
   const wrapper = document.createElement("div");
   wrapper.style.display = "flex";
@@ -516,12 +526,12 @@ if (existingSelect) return;
   wrapper.style.gap = "10px";
   wrapper.style.flexWrap = "wrap";
 
-  // 성명 선택 드롭다운 생성
   const select = document.createElement("select");
-  select.id = "singleNameSelect";
-  select.className = "name-select";
-  select.style.fontSize = "1.3rem";
-  select.style.marginBottom = "1rem";
+select.id = "singleNameSelect";
+select.classList.add("name-select", "my-custom-style"); // ✅ 클래스 여러 개 추가
+select.style.fontSize = "1.3rem";
+select.style.marginBottom = "1rem";
+
 
   const defaultOption = document.createElement("option");
   defaultOption.value = "";
@@ -533,29 +543,58 @@ if (existingSelect) return;
     const key = `${member.name}__${member.team || ""}`;
     if (selectedNames.includes(key)) return;
 
+    const isDuplicate = memberList.filter(m => m.name === member.name).length > 1;
+
     const option = document.createElement("option");
     option.value = key;
-    option.textContent = memberList.filter(m => m.name === member.name).length > 1 && member.team
+    option.textContent = isDuplicate && member.team
       ? `${member.name}(${member.team})`
       : member.name;
+
     select.appendChild(option);
   });
 
-  select.addEventListener("change", () => {
-    const fullKey = select.value;
-    if (!fullKey || selectedNames.includes(fullKey)) return;
-    if (selectedNames.length >= 30) {
-      alert("최대 30명까지만 등록할 수 있습니다.");
-      return;
-    }
-    selectedNames.push(fullKey);
-    renderSelectedTable();
-    updateSummary();
-    updateSelectOptions(document.querySelectorAll(".name-select"));
-    select.value = "";
-  });
+  const nonMemberOption = document.createElement("option");
+  nonMemberOption.value = "__비회원__";
+  nonMemberOption.textContent = "➕ 비회원 추가";
+  select.appendChild(nonMemberOption);
 
-  // 중간 삽입 버튼
+  select.addEventListener("change", () => {
+  const fullKey = select.value;
+
+  if (fullKey === "__비회원__") {
+    showNonMemberInput(select);
+    return;
+  }
+
+  if (!fullKey || selectedNames.includes(fullKey)) return;
+
+  if (selectedNames.length >= 35) {
+    alert("최대 35명까지만 등록할 수 있습니다.");
+    return;
+  }
+  
+  selectedNames.push(fullKey);
+  updateSelectOptions(document.querySelectorAll('.name-select'));
+  renderSelectedTable();
+  updateSummary();
+
+  // ✅ 시각 효과 추가
+select.classList.add("flash");
+
+setTimeout(() => {
+  // ✅ 콤보박스 초기화
+  select.value = "";
+
+  // ✅ 시각 효과 제거
+  select.classList.remove("flash");
+
+  // ✅ 선택한 이름 삭제 or 숨김
+  updateSelectOptions(document.querySelectorAll(".name-select"));
+}, 1000);
+
+});
+
   const insertBtn = document.createElement("button");
   insertBtn.textContent = "중간 삽입";
   insertBtn.onclick = () => showMiddleInsertForm();
@@ -564,7 +603,6 @@ if (existingSelect) return;
   wrapper.appendChild(insertBtn);
   container.appendChild(wrapper);
 
-  // 테이블 추가
   const table = document.createElement("table");
   table.id = "selectedTable";
   table.style.borderCollapse = "collapse";
@@ -573,7 +611,61 @@ if (existingSelect) return;
   table.innerHTML = "<tr><th>순위</th><th>성명</th><th>지각</th><th>변경</th></tr>";
   container.appendChild(table);
 
+  // ✅ 최종 테이블, 콤보박스 상태 갱신
   renderSelectedTable();
+  updateSelectOptions(document.querySelectorAll(".name-select"));
+}
+
+function showNonMemberInput(select) {
+  // 이미 입력창이 있으면 제거
+  const existing = document.getElementById("nonMemberInputBox");
+  if (existing) existing.remove();
+
+  const box = document.createElement("div");
+  box.id = "nonMemberInputBox";
+  box.style.marginTop = "1rem";
+  box.style.display = "flex";
+  box.style.gap = "10px";
+  box.style.alignItems = "center";
+
+  const input = document.createElement("input");
+  input.placeholder = "비회원 성명 입력";
+  input.style.fontSize = "1.1rem";
+  input.style.padding = "0.4rem";
+  input.style.width = "160px";
+
+  const saveBtn = document.createElement("button");
+  saveBtn.textContent = "저장";
+  saveBtn.onclick = () => {
+    const name = input.value.trim();
+    if (!name) {
+      alert("이름을 입력하세요.");
+      return;
+    }
+    if (selectedNames.includes(name)) {
+      alert("이미 등록된 이름입니다.");
+      return;
+    }
+    selectedNames.push(name);
+    renderSelectedTable();
+    updateSummary();
+    select.value = "";
+    box.remove();
+  };
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.textContent = "취소";
+  cancelBtn.onclick = () => {
+    select.value = "";
+    box.remove();
+  };
+
+  box.appendChild(input);
+  box.appendChild(saveBtn);
+  box.appendChild(cancelBtn);
+
+  // select 바로 아래에 삽입
+  select.parentNode.insertBefore(box, select.nextSibling);
 }
 
 function showMiddleInsertForm() {
@@ -601,17 +693,25 @@ function showMiddleInsertForm() {
 
   const sortedList = [...memberList].sort((a, b) => a.name.localeCompare(b.name, "ko"));
   sortedList.forEach(member => {
-    const key = `${member.name}__${member.team || ""}`;
-    if (selectedNames.includes(key)) return;
+  const key = `${member.name}__${member.team || ""}`;
+  if (selectedNames.includes(key)) return;
 
-    const option = document.createElement("option");
-    option.value = key;
-    const isDuplicate = memberList.filter(m => m.name === member.name).length > 1;
-    option.textContent = isDuplicate && member.team
-      ? `${member.name}(${member.team})`
-      : member.name;
-    nameSelect.appendChild(option);
-  });
+  const option = document.createElement("option");
+  const isDuplicate = memberList.filter(m => m.name === member.name).length > 1;
+  option.value = key;
+  option.textContent = isDuplicate && member.team
+    ? `${member.name}(${member.team})`
+    : member.name;
+
+  nameSelect.appendChild(option);
+});
+
+// ✅ 비회원 항목 추가
+const nonMemberOption = document.createElement("option");
+nonMemberOption.value = "__비회원__";
+nonMemberOption.textContent = "➕ 비회원 추가";
+nameSelect.appendChild(nonMemberOption);
+
 
   // ✅ 출석 순위 선택 드롭다운
   const rankSelect = document.createElement("select");
@@ -665,7 +765,13 @@ function showMiddleInsertForm() {
   box.appendChild(rankSelect);
   box.appendChild(saveBtn);
   box.appendChild(closeBtn);
-  container.appendChild(box);
+  const table = document.getElementById("selectedTable");
+if (table) {
+  container.insertBefore(box, table);
+} else {
+  container.appendChild(box); // fallback
+}
+
 }
 
 
@@ -707,9 +813,42 @@ function renderSelectedTable() {
     lateCheck.style.transform = "scale(1.3)";
     lateCheck.style.marginLeft = "8px";
     lateCheck.onchange = () => {
-      lateStatus[name] = lateCheck.checked;
-      renderNameDropdown();
-    };
+      const fullKey = selectedNames[idx];  // idx는 forEach에서 받는 인덱스
+  lateStatus[fullKey] = lateCheck.checked;  // ✅ fullKey 기준으로 저장
+  updateLateStatusTable();  // ✅ 테이블 갱신
+
+  renderNameDropdown();
+  updateSelectOptions(document.querySelectorAll(".name-select"));
+};
+
+function updateLateStatusTable() {
+  const table = document.getElementById("lateStatusTable");
+  if (!table) return;
+
+  const tbody = table.querySelector("tbody");
+  if (!tbody) return;
+
+  const rows = tbody.querySelectorAll("tr");
+
+  selectedNames.forEach((fullKey, idx) => {
+    const [name, team] = fullKey.split("__");
+    const isDuplicate = memberList.filter(m => m.name === name).length > 1;
+    const displayName = isDuplicate && team ? `${name}(${team})` : name;
+    const isLate = lateStatus[fullKey] || false;
+
+    const status = isLate
+      ? `<span style="color:red; font-weight:bold;">지각</span>`
+      : "정상";
+
+    const row = rows[idx];
+    if (row) {
+      row.children[2].innerHTML = status;
+    }
+  });
+}
+
+
+
     lateTd.appendChild(lateCheck);
 
     // 조작 버튼 셀
@@ -803,33 +942,37 @@ function renderNameDropdown() {
   const select = document.getElementById("singleNameSelect");
   if (!select) return;
 
-  const prevValue = select.value;
   select.innerHTML = "";
 
+  // 기본 안내 옵션
   const defaultOption = document.createElement("option");
   defaultOption.value = "";
   defaultOption.textContent = "-- 성명 선택 --";
   select.appendChild(defaultOption);
 
+  // 정렬된 명단 기준 드롭다운 구성
   const sortedList = [...memberList].sort((a, b) => a.name.localeCompare(b.name, "ko"));
   sortedList.forEach(member => {
-  if (selectedNames.includes(member.name)) return;
+    const fullKey = `${member.name}__${member.team || ""}`;
 
-  const duplicates = memberList.filter(m => m.name === member.name);
-  const isDuplicate = duplicates.length > 1;
-  const displayName = isDuplicate && member.team
-    ? `${member.name}(${member.team})`
-    : member.name;
+    if (selectedNames.includes(fullKey)) return; // 이미 선택된 사람은 제외
 
-    const uniqueKey = `${member.name}__${member.team || ""}`;
+    const isDuplicate = memberList.filter(m => m.name === member.name).length > 1;
 
-const option = document.createElement("option");
-option.value = `${member.name}__${member.team || ""}`;
-option.textContent = displayName;
+    const option = document.createElement("option");
+    option.value = fullKey;
+    option.textContent = isDuplicate && member.team
+      ? `${member.name}(${member.team})`
+      : member.name;
 
-select.appendChild(option);
-});
+    select.appendChild(option);
+  });
 
+  // ✅ 비회원 추가 옵션은 한 번만!
+  const nonMemberOption = document.createElement("option");
+  nonMemberOption.value = "__비회원__";
+  nonMemberOption.textContent = "➕ 비회원 추가";
+  select.appendChild(nonMemberOption);
 
   select.value = "";
 }
@@ -1039,33 +1182,25 @@ function clearCurrentAttendanceInputs() {
 
 
 function updateSelectOptions(selects) {
-  const selectedNames = Array.from(selects)
-    .map(select => select.value)
-    .filter(name => name !== "" && name !== "__비회원__"); // 비회원 선택은 중복 허용
+  const selectedKeys = [...selectedNames]; // fullKey 기준으로 체크해야 정확
 
   selects.forEach(select => {
     const current = select.value;
     Array.from(select.options).forEach(option => {
       if (option.value === "") return;
-      option.hidden = selectedNames.includes(option.value) && option.value !== current;
+
+      // 비회원 추가는 항상 표시
+      if (option.value === "__비회원__") {
+        option.hidden = false;
+        return;
+      }
+
+      // 이미 선택된 항목은 숨김 (단, 현재 선택한 건 유지)
+      option.hidden = selectedKeys.includes(option.value) && option.value !== current;
     });
   });
 }
 
-
-function updateSelectOptions(selects) {
-  const selectedNames = Array.from(selects)
-    .map(select => select.value)
-    .filter(name => name !== "");
-
-  selects.forEach(select => {
-    const current = select.value;
-    Array.from(select.options).forEach(option => {
-      if (option.value === "") return;
-      option.disabled = selectedNames.includes(option.value) && option.value !== current;
-    });
-  });
-}
 function updateSummary() {
   const summaryDiv = document.getElementById("attendanceSummary");
   let summaryHtml = "<strong>현재 출석 상태 요약:</strong><br>";
@@ -1088,6 +1223,8 @@ function updateSummary() {
 
   summaryDiv.innerHTML = summaryHtml;
 }
+
+
 
 let savedAttendanceData = [];
 
@@ -1222,6 +1359,9 @@ daySelect.addEventListener("change", updateWeekday);
 
 populateDateSelectors();
 setupDateListeners();
+
+let selectedNames = [];
+let lateStatus = {};
 let memberList = [];
 
 document.getElementById("excelFileInput").addEventListener("change", function (e) {
