@@ -4,8 +4,6 @@
   <meta charset="UTF-8">
   <title>제스트 출석 관리 시스템</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- ① 글꼴 불러오기 -->
-<link href="https://cdn.jsdelivr.net/gh/webfontworld/gmarket/GmarketSans.css" rel="stylesheet" />
 <style>
   body {
       font-family: 'GmarketSans', sans-serif;
@@ -40,7 +38,11 @@
     .tab-buttons button:hover {
       background-color: #45a049;
     }
-
+    .tab-buttons button.active {
+  box-shadow: 0 0 0 3px #333 inset;  /* 테두리 강조 효과 */
+  filter: brightness(1.2);           /* 밝기 강조 */
+  transform: scale(1.02);            /* 살짝 확대 */
+}
     .tab {
       display: none;
       padding: 1rem;
@@ -195,6 +197,42 @@
   box-sizing: border-box;
   padding: 1rem;
 }
+#teamAddArea {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+/* 팀구분 테이블 스타일 개선 */
+#teamDivisionResult table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  font-size: 1.2rem;
+  margin-bottom: 1.5rem;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 0 5px rgba(0,0,0,0.15);
+}
+#teamDivisionResult th, #teamDivisionResult td {
+  border: 1px solid #ccc;
+  padding: 10px;
+  text-align: center;
+}
+#teamDivisionResult th {
+  background-color: #f0f0f0;
+}
+.team-a-color {
+  background-color: #fff9c4;
+}
+.team-b-color {
+  background-color: #ffe0b2;
+}
+.team-c-color {
+  background-color: #bbdefb;
+}
+
   </style>
   
 </head>
@@ -203,13 +241,12 @@
   <!-- 탭 버튼 -->
   <div class="tab-buttons">
     <button onclick="showTab('attendanceTab')">출석부</button>
+    <button onclick="showTab('teamTab')">팀구분</button>
     <button onclick="showTab('matchTab')">경기<br>편성<br>1경기</button>
     <button onclick="showTab('matchSetup2')">경기<br>편성<br>2-4경기</button>
     <button onclick="showTab('memberTab')">회원<br>관리</button>
-    <button onclick="showTab('scoreTab')">경기<br>점수</button>
-
   </div>
-
+  
   <!-- 탭 콘텐츠 영역 -->
   <div id="attendanceTab" class="tab active">
     
@@ -243,13 +280,16 @@
       출석부 삭제
     </button>
   </div>
+
+
   <!-- 🧪 [개발자용] 랜덤 출석 추가 버튼 - 나중에 삭제 -->
 <div style="margin-top: 1rem;">
   <button onclick="debugAddRandomAttendance()" style="padding: 0.6rem 1.2rem; background-color: #eee;">
     🧪 랜덤 출석 27명 추가
   </button>
 </div>
-  
+
+
   <div id="matchSetup2" class="tab">
     <h2>경기 편성 2-4경기</h2>
     <p>여기에 2~4경기 관련 포지션 뽑기 기록, 자동 팀 재배치 등의 기능이 들어갈 수 있어요.</p>
@@ -360,7 +400,28 @@
     <div id="matchResult" style="margin-top: 1.5rem;"></div>
   </div>
   
-  
+  <div id="teamTab" class="tab">
+    <h2>팀구분 결과</h2>
+   <!-- ⛳ 인원 추가 버튼 -->
+   <div style="margin-top: 1rem; text-align: center;">
+    <button onclick="showTeamAddForm()" style="padding: 0.6rem 1.2rem; font-size: 1.1rem;">
+      ➕ 인원 추가
+    </button>
+    <button onclick="showTeamChangeForm()" style="margin-left: 1rem; padding: 0.6rem 1.2rem; font-size: 1.1rem;">
+      🔄 팀 변경
+    </button>
+     <div id="teamChangeContainer" style="margin-top: 1rem;"></div>
+    
+  </div>
+
+  <!-- ⛳ 인원 추가 폼이 나타날 영역 -->
+  <div id="teamAddArea" style="margin-top: 1rem;"></div>
+
+  <!-- ⛳ 결과 출력 테이블 -->
+  <div id="teamDivisionResult" style="margin-top: 1rem;"></div>
+</div>
+
+
   <div id="memberTab" class="tab">
     <h2>회원 관리</h2>
   
@@ -378,7 +439,7 @@
   
     <!-- 버튼 그룹 -->
     <div style="display: flex; flex-wrap: wrap; gap: 1.2rem; margin-top: 1.5rem;">
-      <button onclick="downloadMemberList()" style="flex: 1 1 45%; padding: 1.2rem; font-size: 1.3rem;">회원 명단 보기</button>
+      <button onclick="showTab('scoreTab')" style="flex: 1 1 45%; padding: 1.2rem; font-size: 1.3rem;">경기 점수 보기</button>
       <button onclick="toggleEditTeam()" style="flex: 1 1 45%; padding: 1.2rem; font-size: 1.3rem;">회원 소속 변경</button>
       <button onclick="toggleIndividualDelete()" style="flex: 1 1 45%; padding: 1.2rem; font-size: 1.3rem;">회원 개별 삭제</button>
       <button onclick="deleteAllMembers()" style="flex: 1 1 45%; padding: 1.2rem; font-size: 1.3rem;">회원 명단<br>전체 삭제</button>
@@ -408,6 +469,8 @@
   
 
   </div>
+ 
+
 <!-- 경기 점수 탭 시작 -->
 <!-- ✅ 경기 점수 탭 전체 구조 -->
 <div id="scoreTab" class="tab">
@@ -458,7 +521,7 @@
     B팀: <span id="matchB">0</span>명 /
     C팀: <span id="matchC">0</span>명
   </div>
- 
+  <div id="scoreTab" class="tab" style="display: none;"></div>
 </div>
 
 
@@ -470,12 +533,35 @@
       clearCurrentAttendanceInputs(); // 원래 있던 삭제 함수 실행
     }
   }
-    function showTab(tabId) {
-  const tabs = document.querySelectorAll('.tab');
-  tabs.forEach(tab => tab.classList.remove('active'));
-  document.getElementById(tabId).classList.add('active');
 
+  function showTab(tabId) {
+  const tabs = document.querySelectorAll(".tab");
+  tabs.forEach(tab => {
+    tab.classList.remove("active");
+    tab.style.display = "none";
+  });
+
+  const selectedTab = document.getElementById(tabId);
+  if (selectedTab) {
+    selectedTab.classList.add("active");
+    selectedTab.style.display = "block";
+    console.log("✅ 탭 전환됨:", tabId);
+  }
+
+  // 🟢 버튼 강조 동기화
+  const buttons = document.querySelectorAll(".tab-buttons button");
+  buttons.forEach(btn => {
+    const onclickValue = btn.getAttribute("onclick") || "";
+    const matches = onclickValue.match(/showTab\('([^']+)'\)/);
+    const targetId = matches?.[1];
+    if (targetId === tabId) btn.classList.add("active");
+    else btn.classList.remove("active");
+  });
 }
+
+
+
+
     // 날짜 선택 초기화
 const yearSelect = document.getElementById("yearSelect");
 const monthSelect = document.getElementById("monthSelect");
@@ -813,6 +899,7 @@ function showMiddleInsertForm() {
   const nameSelect = document.createElement("select");
   nameSelect.id = "middleInsertName";
   nameSelect.style.fontSize = "1.1rem";
+  
   nameSelect.innerHTML = '<option value="">-- 성명 선택 --</option>';
 
   const sortedList = [...memberList].sort((a, b) => a.name.localeCompare(b.name, "ko"));
@@ -1292,6 +1379,7 @@ if (teamC.length > 0) {
 
   // 셔플
   window.shuffledNotes = [...notes];
+  window.shuffledNotesOriginal = [...notes];  // ❗ 원본 백업
   for (let i = shuffledNotes.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffledNotes[i], shuffledNotes[j]] = [shuffledNotes[j], shuffledNotes[i]];
@@ -1444,18 +1532,18 @@ function saveAttendance() {
     const [name] = fullKey.split("__");
 
     const late = lateStatus[name] || false;
+    const leave = (confirmedSelections[name] || "").includes("조퇴"); // ✅ 조퇴 반영
 
     savedAttendanceData.push({
       rank: i + 1,
       name,
       late,
-      leave: false,
+      leave, // ✅ 추가
       isNonMember: false,
       score: late ? 5 : 10
     });
   }
 
-  // 날짜 키
   const year = document.getElementById("yearSelect").value;
   const month = document.getElementById("monthSelect").value.padStart(2, '0');
   const day = document.getElementById("daySelect").value.padStart(2, '0');
@@ -1469,6 +1557,7 @@ function saveAttendance() {
   alert(`출석 정보가 저장되었습니다 (${dateKey})`);
   renderAttendanceHistory();
 }
+
 
 
 
@@ -2209,42 +2298,11 @@ function confirmSelection(selectedIndex) {
   currentPlayerIndex++;
  // 마지막 플레이어일 경우 모달을 닫지 않음
  if (currentPlayerIndex >= voteOrder.length) {
-  const saveBtn = document.getElementById("saveDrawButton");
-  if (saveBtn) {
-    saveBtn.style.display = "block";  // ✅ 버튼이 존재할 경우에만 표시
-  } else {
-    console.warn("❗ 저장 버튼(saveDrawButton)이 DOM에 없습니다.");
-  }
   displayFinalTeamResults(); // ✅ 결과 테이블 출력
 } else {
   renderEnvelopes(); // ✅ 다음 사용자 쪽지 표시
 }
 
-
- // ✅ 선택된 쪽지 제외한 인덱스만 셔플 (내용 유지, 위치만 변경)
-const selectedIdx = selected.index;
-const remainingIndexes = [];
-
-for (let i = 0; i < shuffledNotes.length; i++) {
-  if (!confirmedIndexes.includes(i)) remainingIndexes.push(i);
-}
-
-// 쪽지 값은 유지하고 위치만 섞음
-const remainingValues = remainingIndexes.map(i => shuffledNotes[i]);
-
-// 셔플 함수
-function shuffle(array) {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-}
-shuffle(remainingValues);
-
-// 섞인 값 다시 해당 위치에 재할당
-remainingIndexes.forEach((i, idx) => {
-  shuffledNotes[i] = remainingValues[idx];
-});
 // 선택 모달 닫기
 document.getElementById("selectionModal").style.display = "none";
 
@@ -2259,11 +2317,21 @@ function getDuplicateNames(memberList) {
     .filter(([_, count]) => count > 1)
     .map(([name]) => name);
 }
+// 전역에 추가
+let duplicateNames = [];
+
 function getDisplayName(name) {
-  const isDuplicated = duplicateNames.includes(name);
+  const nameCount = {};
+  memberList.forEach(m => {
+    nameCount[m.name] = (nameCount[m.name] || 0) + 1;
+  });
+
+  const isDuplicate = nameCount[name] > 1;
   const member = memberList.find(m => m.name === name);
-  return isDuplicated && member && member.team ? `${name} (${member.team})` : name;
+  return isDuplicate && member?.team ? `${name} (${member.team})` : name;
 }
+
+
 
 
 
@@ -2311,20 +2379,27 @@ function updateLiveResultTable() {
 
   let bCount = 0, cCount = 0;
 
-  Object.entries(confirmedSelections).forEach(([name, pos]) => {
-    const cleanPos = pos.replace(/^A팀 |^B팀 |^C팀 /, "");
-    const row = `<tr><td>${name}</td><td>${cleanPos}</td></tr>`;
+ // C팀이 포지션을 뽑았는지 확인하는 변수 (boolean)
+const cTeamHasPositions = (window.matchTeamAssignments?.teamCPositions?.length ?? 0) > 0;
 
-    if (pos.startsWith("A팀")) aTable.innerHTML += row;
-    else if (pos.startsWith("B팀") && bTable) {
-      bTable.innerHTML += row;
-      bCount++;
-    }
-    else if (pos.startsWith("C팀") && cTable) {
-      cTable.innerHTML += `<tr><td>${name}</td></tr>`;
-      cCount++;
-    }
-  });
+Object.entries(confirmedSelections).forEach(([name, pos]) => {
+  const cleanPos = pos.replace(/^A팀 |^B팀 |^C팀 /, "");
+  const displayName = getDisplayName(name);
+  const team = pos.slice(0, 2); // A팀 / B팀 / C팀
+
+  if (team === "A팀") {
+    aTable.innerHTML += `<tr><td>${displayName}</td><td>${cleanPos}</td></tr>`;
+  } else if (team === "B팀" && bTable) {
+    bTable.innerHTML += `<tr><td>${displayName}</td><td>${cleanPos}</td></tr>`;
+    bCount++;
+  } else if (team === "C팀" && cTable) {
+    const row = cTeamHasPositions
+      ? `<tr><td>${displayName}</td><td>${cleanPos}</td></tr>`
+      : `<tr><td>${displayName}</td><td></td></tr>`;
+    cTable.innerHTML += row;
+    cCount++;
+  }
+});
 
   if (bCount > 0 && bContainer) bContainer.style.display = "block";
   if (cCount > 0 && cContainer) cContainer.style.display = "block";
@@ -2335,7 +2410,7 @@ function updateLiveResultTable() {
 
 
 function displayFinalTeamResults() {
-  const { formationA, formationB } = window.matchTeamAssignments;
+  let html = "";
   const resultDiv = document.getElementById("matchResult");
 
   const assigned = {};
@@ -2343,19 +2418,18 @@ function displayFinalTeamResults() {
     assigned[name] = pos;
   });
 
-  const teamData = {
-    A: [],
-    B: [],
-    C: []
-  };
+  const teamData = { A: [], B: [], C: [] };
 
   Object.entries(assigned).forEach(([name, pos]) => {
     const teamKey = pos.startsWith("A팀") ? "A" :
                     pos.startsWith("B팀") ? "B" : "C";
-    teamData[teamKey].push({ name, position: pos.replace(/^[ABC]팀 /, "") });
+    teamData[teamKey].push({
+      name,
+      position: pos.replace(/^[ABC]팀 /, "")
+    });
   });
 
-  // ✅ 동명이인 목록 구하기
+  // 동명이인 구별용
   const nameCount = {};
   memberList.forEach(m => {
     nameCount[m.name] = (nameCount[m.name] || 0) + 1;
@@ -2364,43 +2438,102 @@ function displayFinalTeamResults() {
     .filter(([_, count]) => count > 1)
     .map(([name]) => name);
 
-  // ✅ 이름 표시 함수
-  function getDisplayName(name) {
+  const getDisplayName = (name) => {
     const isDup = duplicateNames.includes(name);
     const member = memberList.find(m => m.name === name);
     return isDup && member?.team ? `${name} (${member.team})` : name;
-  }
+  };
 
-  let html = "";
+  // 출석 기록 기준 정렬
+  const dateKey = Object.keys(attendanceHistoryData || {}).sort().pop();
+  const attendanceData = attendanceHistoryData?.[dateKey] || [];
 
-  // ✅ A/B팀 테이블
-  ["A", "B"].forEach(teamKey => {
-    const team = teamData[teamKey];
-    const formation = teamKey === "A" ? formationA : formationB;
-    const bgColor = teamKey === "A" ? "#fff9c4" : "#ffe0b2";
-
-    html += `<h3 style="margin-top:2rem;">${teamKey}팀 (${formation})</h3>
-    <table border="1" cellpadding="6" style="border-collapse: collapse; width:100%; max-width: 300px; text-align:center; background-color: ${bgColor};">
-      <tr><th>이름</th><th>포지션</th></tr>
-      ${team.map(p => `<tr><td>${getDisplayName(p.name)}</td><td>${p.position}</td></tr>`).join("")}
-    </table>`;
+  const sortedAssigned = Object.entries(assigned).sort(([nameA], [nameB]) => {
+    const rankA = attendanceData.find(p => p.name === nameA)?.rank ?? 999;
+    const rankB = attendanceData.find(p => p.name === nameB)?.rank ?? 999;
+    return rankA - rankB;
   });
 
-  // ✅ C팀 테이블
-  if (Array.isArray(teamData.C) && teamData.C.length > 0) {
-    html += `
-    <div id="cTeamResultArea" style="margin-top:2rem;">
-      <h3 style="text-align: center;">C팀 추첨 결과</h3>
-      <table border="1" cellpadding="6" style="border-collapse: collapse; width:100%;  max-width: 300px; text-align:center; background-color: #bbdefb;">
-        <tr><th>이름</th></tr>
-        ${teamData.C.map(p => `<tr><td>${getDisplayName(p.name)}</td></tr>`).join("")}
+  const sortedTeamData = { A: [], B: [], C: [] };
+  sortedAssigned.forEach(([name, pos]) => {
+    const teamKey = pos.startsWith("A팀") ? "A" :
+                    pos.startsWith("B팀") ? "B" : "C";
+    sortedTeamData[teamKey].push({
+      name,
+      position: pos.replace(/^[ABC]팀 /, "")
+    });
+  });
+
+  const teamStyles = {
+    A: "#fff9c4",
+    B: "#ffe0b2",
+    C: "#bbdefb"
+  };
+
+  html += `<div style="display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap;">`;
+  ["A", "B"].forEach(teamKey => {
+    const team = sortedTeamData[teamKey];
+    html += `<div>
+      <h3 style="text-align: center;">${teamKey}팀</h3>
+      <table class="team-result-table team-${teamKey.toLowerCase()}-color" border="1" cellpadding="6" style="border-collapse: collapse; width:300px; text-align:center;">
+        <tr><th>순</th><th>이름</th><th>포지션</th><th>조퇴</th></tr>
+        ${team.map((p, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${getDisplayName(p.name)}</td>
+            <td>${p.position}</td>
+            <td><button onclick="markLeave('${p.name}', '${teamKey}')">조퇴</button></td>
+          </tr>`).join("")}
       </table>
     </div>`;
+  });
+
+  if (sortedTeamData.C.length > 0) {
+    html += `
+      <div id="cTeamResultArea" style="margin-top:2rem;">
+        <h3 style="text-align: center;">C팀 추첨 결과</h3>
+        <table border="1" cellpadding="6" style="border-collapse: collapse; width:300px; text-align:center; background-color: ${teamStyles.C}; margin: 0 auto;">
+          <tr><th>순</th><th>이름</th></tr>
+          ${sortedTeamData.C.map((p, i) => `
+            <tr><td>${i + 1}</td><td>${getDisplayName(p.name)}</td></tr>`).join("")}
+        </table>
+      </div>`;
   }
 
-  resultDiv.innerHTML = html;
+  document.getElementById("teamDivisionResult").innerHTML = html;
+  document.getElementById("resultModalOverlay").style.display = "none";
   document.getElementById("drawModalOverlay").style.display = "none";
+  showTab("teamTab");
+  window.scrollTo(0, 0);
+  localStorage.setItem("finalTeamResults", JSON.stringify(sortedTeamData));
 }
+
+
+
+function closeResultModal() {
+  document.getElementById("resultModalOverlay").style.display = "none";
+}
+
+
+function markLeave(name, teamKey) {
+  if (!confirm(`${name} 님을 ${teamKey}팀에서 조퇴 처리할까요?`)) return;
+
+  // confirmedSelections에서 제거
+  delete confirmedSelections[name];
+
+  // 출석 관리 데이터에 leave 반영
+  const dateKey = Object.keys(attendanceHistoryData).sort().pop();
+  const data = attendanceHistoryData[dateKey];
+  const entry = data.find(p => p.name === name);
+  if (entry) {
+    entry.leave = true;
+    entry.late = false;
+  }
+
+  localStorage.setItem("attendanceHistoryData", JSON.stringify(attendanceHistoryData));
+  displayFinalTeamResults(); // 다시 렌더링
+}
+
 
 function resetDraw() {
   // 선택 기록 초기화
@@ -2530,6 +2663,52 @@ function renderAttendanceHistory() {
   html += "</tbody></table>";
   container.innerHTML = html;
 }
+  function renderTeamDivisionResult() {
+  const container = document.getElementById("teamDivisionResult");
+  container.innerHTML = ""; // 기존 내용 초기화
+
+  // A팀, B팀, C팀 데이터를 가져와야 함
+  const teams = { A: finalTeamA, B: finalTeamB, C: finalTeamC }; // 실제 배열 이름에 맞게 수정
+  const colors = { A: "#fff9c4", B: "#ffe0b2", C: "#bbdefb" };
+
+  for (const team in teams) {
+    if (teams[team].length === 0) continue;
+
+    const teamBox = document.createElement("div");
+    teamBox.style.display = "inline-block";
+    teamBox.style.verticalAlign = "top";
+    teamBox.style.margin = "0 1.5rem 2rem 0";
+    teamBox.style.background = colors[team];
+    teamBox.style.padding = "1rem";
+    teamBox.style.borderRadius = "10px";
+    teamBox.style.minWidth = "230px";
+
+    const title = document.createElement("h3");
+    const formation = getFormationLabel(team); // 포메이션 표시 함수
+    title.textContent = `${team}팀 (${formation})`;
+    teamBox.appendChild(title);
+
+    const table = document.createElement("table");
+    table.style.borderCollapse = "collapse";
+    table.style.width = "100%";
+
+    const thead = document.createElement("thead");
+    thead.innerHTML = "<tr><th>순</th><th>이름</th><th>포지션</th></tr>";
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+    teams[team].forEach((player, i) => {
+      const row = document.createElement("tr");
+      row.innerHTML = `<td>${i + 1}</td><td>${player.name}</td><td>${player.position}</td>`;
+      tbody.appendChild(row);
+    });
+
+    table.appendChild(tbody);
+    teamBox.appendChild(table);
+    container.appendChild(teamBox);
+  }
+}
+
 function confirmResetDrawModal() {
   const proceed = confirm("모든 선택을 리셋합니다.\n포지션 뽑기를 다시 하고 싶다면 확인 버튼을 누르세요.");
   if (proceed) {
@@ -2599,9 +2778,6 @@ function updatePositionHeader() {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
    window.addEventListener('DOMContentLoaded', () => {
-    if (memberList.length > 0) {
-  loadRankedAttendance();
-}
   // ✅ 출석 이력 복원
   const savedData = localStorage.getItem("attendanceHistoryData");
   if (savedData) {
@@ -2628,8 +2804,13 @@ function updatePositionHeader() {
     memberList = [];
   }
 
-// 이 아래에 추가하세요
-["dfA", "mfA", "fwA"].forEach(id => {
+  // ✅ memberList 복원 이후에 실행해야 함
+  if (memberList.length > 0) {
+    loadRankedAttendance();
+  }
+
+  // 나머지 이벤트 바인딩
+  ["dfA", "mfA", "fwA"].forEach(id => {
     document.getElementById(id).addEventListener("input", () => updateRemainingPlayers("A"));
   });
 
@@ -2637,10 +2818,12 @@ function updatePositionHeader() {
     document.getElementById(id).addEventListener("input", () => updateRemainingPlayers("B"));
   });
 
-  // 포메이션 추천 자동 연결
   document.getElementById("matchAStarter").addEventListener("input", () => suggestFormation("A"));
   document.getElementById("matchBStarter").addEventListener("input", () => suggestFormation("B"));
 });
+const finalTeamA = window.matchTeamAssignments?.teamA || [];
+  const finalTeamB = window.matchTeamAssignments?.teamB || [];
+  const finalTeamC = window.matchTeamAssignments?.teamC || [];
 
 
   </script>
@@ -2668,40 +2851,43 @@ function redoSelection() {
     return;
   }
 
-   // 되돌릴 플레이어 정보
-   const { playerName, envelopeIndex, envelopesSnapshot } = lastSelection;
+  const { playerName, envelopeIndex, envelopesSnapshot, value } = lastSelection;
 
-   // 선택 취소
-   delete confirmedSelections[playerName];
+  // 선택 취소
+  delete confirmedSelections[playerName];
   const idx = confirmedIndexes.indexOf(envelopeIndex);
   if (idx !== -1) confirmedIndexes.splice(idx, 1);
 
-  // 현재 플레이어 인덱스 되돌리기
+  // 인덱스 복원 (🧠 순서 오류 방지)
   currentPlayerIndex--;
 
-   // 쪽지 UI 복구
-   const box = document.getElementById(`envelope-${envelopeIndex}`);
+  // 쪽지 UI 복원
+  const box = document.getElementById(`envelope-${envelopeIndex}`);
   if (box) {
     box.textContent = "✉️";
     box.style.pointerEvents = "auto";
     box.style.opacity = "1.0";
   }
 
-  // 실시간 결과 갱신
+  // 실시간 결과 테이블 갱신
   updateLiveResultTable();
 
- // 쪽지 상태 복원
- openedEnvelopes = [...envelopesSnapshot];
+  // ✅ 쪽지 내용도 복원 (☑️ 핵심 포인트!)
+  shuffledNotes[envelopeIndex] = value;
 
- // 모달 다시 표시
-showSelectionModal();
+  // 쪽지 상태 복원
+  openedEnvelopes = [...envelopesSnapshot];
 
-  // 마지막 선택 정보 초기화
+  // 모달 다시 표시
+  showSelectionModal();
+
+  // 선택 기록 초기화
   lastSelection = null;
 
-  // 현재 뽑기 순서 정보 갱신
+  // 현재 뽑기 순서 갱신
   showVotingInfo();
 }
+
 
 function confirmReset() {
   if (confirm("⚠️ 모든 선택을 리셋합니다.\n포지션 뽑기를 다시 하고 싶다면 '예' 버튼을 누르세요.")) {
@@ -2725,8 +2911,16 @@ function saveDrawResult() {
   localStorage.setItem("savedDrawResult", JSON.stringify(savedResults));
   alert("✅ 뽑기 결과가 저장되었습니다. 2~4경기에 자동으로 불러옵니다.");
 
-  displayFinalTeamResults();  // 결과 표시
-  closeSelectionModal();      // 모달 닫기 (이 시점에서 safe)
+  displayFinalTeamResults();  // 결과 출력
+  closeSelectionModal();      // 모달 닫기
+  
+
+  document.getElementById("drawModalOverlay").style.display = "none"; // 뽑기 모달 닫기
+  document.getElementById("resultModalOverlay").style.display = "none";
+  renderTeamDivisionResult();
+showTab("teamTab");  // 팀구분 탭으로 이동
+window.scrollTo(0, 0);  // 화면 최상단 이동
+
 }
 
 
@@ -2785,6 +2979,359 @@ function debugAddRandomAttendance() {
 
   alert("랜덤 27명이 출석 명단에 추가되었습니다.");
 }
+function showTeamAddForm() {
+  const container = document.getElementById("teamAddArea");
+  container.innerHTML = "";
+
+  // 성명 선택 드롭다운에 표시할 이름 필터
+  const currentNames = Object.keys(confirmedSelections);
+
+  // 팀 테이블에 이미 추가된 이름도 확인
+  const allAssignedNames = [
+    ...(window.matchTeamAssignments?.teamA || []).map(p => p.name),
+    ...(window.matchTeamAssignments?.teamB || []).map(p => p.name),
+    ...(window.matchTeamAssignments?.teamC || []).map(p => p.name),
+  ];
+
+  // ✅ 팀 선택 옵션 구성 (오류 해결)
+  const teamOptions = [];
+  if (window.matchTeamAssignments?.teamA?.length > 0) teamOptions.push("A팀");
+  if (window.matchTeamAssignments?.teamB?.length > 0) teamOptions.push("B팀");
+  if (window.matchTeamAssignments?.teamC?.length > 0) teamOptions.push("C팀");
+
+  // 성명 선택 드롭다운
+const nameSelect = document.createElement("select");
+nameSelect.style.marginRight = "10px";
+nameSelect.style.fontSize = "1.1rem";
+nameSelect.style.height = "2rem";
+nameSelect.style.lineHeight = "2rem";
+
+nameSelect.innerHTML = `<option value="">-- 성명 선택 --</option>`;
+memberList.forEach(m => {
+  const att = getAttendanceStatus(m.name); // 출석 기록에서 상태 반환하는 함수
+  const isValid = (!att || att.leave === true) && !allAssignedNames.includes(m.name);
+  if (isValid) {
+    const label = getDisplayName(m.name);
+    nameSelect.innerHTML += `<option value="${m.name}">${label}</option>`;
+  }
+});
+nameSelect.innerHTML += `<option value="__비회원__">➕ 비회원 추가</option>`;
+
+nameSelect.addEventListener("change", () => {
+  if (nameSelect.value === "__비회원__") {
+    const manualInput = prompt("비회원 성명을 입력하세요:");
+    if (!manualInput) {
+      nameSelect.value = "";
+      return;
+    }
+    if ([...nameSelect.options].some(opt => opt.value === manualInput)) {
+      alert("이미 존재하는 이름입니다.");
+      nameSelect.value = "";
+      return;
+    }
+    nameSelect.innerHTML += `<option value="${manualInput}">${manualInput}</option>`;
+    nameSelect.value = manualInput;
+  }
+});
+
+  // 팀 선택 드롭다운
+  const teamSelect = document.createElement("select");
+  teamSelect.style.marginRight = "10px";
+  teamSelect.style.fontSize = "1.1rem";
+  teamSelect.style.height = "2rem";
+teamSelect.style.lineHeight = "2rem";
+  teamSelect.innerHTML = `<option value="">-- 팀 선택 --</option>`;
+  teamOptions.forEach(t => {
+    teamSelect.innerHTML += `<option value="${t}">${t}</option>`;
+  });
+
+  // 저장 버튼
+  const saveBtn = document.createElement("button");
+  saveBtn.textContent = "저장";
+  saveBtn.style.fontSize = "1.2rem";
+  saveBtn.style.padding = "0.4rem 1rem";
+  saveBtn.style.marginLeft = "1rem";
+  saveBtn.onclick = () => {
+    const name = nameSelect.value;
+    const team = teamSelect.value;
+
+    if (!name || !team) return alert("이름과 팀을 선택하세요.");
+
+    const position = "지각";
+    confirmedSelections[name] = `${team} ${position}`;
+
+// ✅ matchTeamAssignments에도 추가
+const teamKey = team === "A팀" ? "teamA" :
+                  team === "B팀" ? "teamB" :
+                  team === "C팀" ? "teamC" : null;
+  if (!window.matchTeamAssignments[teamKey]) window.matchTeamAssignments[teamKey] = [];
+  window.matchTeamAssignments[teamKey].push({ name, position });
+
+
+  // ✅ 이 부분 추가
+  if (!window.finalTeamResults) window.finalTeamResults = {};
+  if (!finalTeamResults[team]) finalTeamResults[team] = [];
+
+  finalTeamResults[team].push({ name, position });
+  localStorage.setItem("finalTeamResults", JSON.stringify(finalTeamResults));
+    if (name !== "__비회원__") {
+  if (!window.attendanceHistoryData) window.attendanceHistoryData = {};
+  const dateKey = Object.keys(attendanceHistoryData).sort().pop();
+  const data = attendanceHistoryData[dateKey];
+  const existing = data.find(p => p.name === name);
+  if (existing) {
+    existing.leave = false;
+    existing.late = true;
+  } else {
+    data.push({
+      name,
+      rank: data.length + 1,
+      late: true,
+      leave: false,
+      isNonMember: false,
+      score: 5
+    });
+  }
+} else {
+  // ✅ 비회원 처리
+  if (!window.attendanceHistoryData) window.attendanceHistoryData = {};
+  const dateKey = Object.keys(attendanceHistoryData).sort().pop();
+  const data = attendanceHistoryData[dateKey];
+  data.push({
+    name,
+    rank: data.length + 1,
+    late: true,
+    leave: false,
+    isNonMember: true,
+    score: 5
+  });
+
+
+      localStorage.setItem("attendanceHistoryData", JSON.stringify(attendanceHistoryData));
+    }
+
+    alert("선택된 사람이 지각으로 추가되었습니다.");
+    updateLiveResultTable();
+    displayFinalTeamResults();
+    container.innerHTML = "";
+  };
+
+  // 닫기 버튼
+const closeBtn = document.createElement("button");
+closeBtn.textContent = "닫기";
+closeBtn.style.fontSize = "1.2rem";
+closeBtn.style.padding = "0.4rem 1rem";
+closeBtn.style.marginLeft = "1rem";
+closeBtn.style.cursor = "pointer";
+closeBtn.onclick = () => container.innerHTML = "";
+
+  container.appendChild(nameSelect);
+  container.appendChild(teamSelect);
+  container.appendChild(saveBtn);
+  container.appendChild(closeBtn);
+}
+
+
+function getAttendanceStatus(name) {
+  if (!window.attendanceHistoryData) return null;
+
+  const dateKey = Object.keys(attendanceHistoryData).sort().pop();
+  const attendanceList = attendanceHistoryData[dateKey];
+  if (!attendanceList) return null;
+
+  const record = attendanceList.find(p => p.name === name);
+  if (!record) return null;
+
+  return {
+    late: record.late,
+    leave: record.leave
+  };
+}
+
+function updateTeamAssignmentTables() {
+  const teamMap = {
+    teamA: { tableId: "teamA-table", color: "#fff9c4" }, // 연노랑
+    teamB: { tableId: "teamB-table", color: "#ffe0b2" }, // 연주황
+    teamC: { tableId: "teamC-table", color: "#e1f5fe" }  // 연파랑 (추가)
+  };
+
+  const createRow = (player, index, bgColor) => `
+    <tr style="background-color: ${bgColor};">
+      <td>${index + 1}</td>
+      <td>${player.name}</td>
+      <td>${player.position || ""}</td>
+      <td><button onclick="markEarlyLeave('${player.name}')">조퇴</button></td>
+    </tr>
+  `;
+
+  for (const [teamKey, info] of Object.entries(teamMap)) {
+    const table = document.getElementById(info.tableId);
+    if (!table) continue;
+
+    table.innerHTML = ""; // 기존 내용 비우기
+
+    const players = window.matchTeamAssignments[teamKey] || [];
+    players.forEach((player, index) => {
+      table.insertAdjacentHTML("beforeend", createRow(player, index, info.color));
+    });
+
+    // C팀 비었을 경우 wrapper 숨기기
+    if (teamKey === "teamC") {
+      const wrapper = document.getElementById("teamC-wrapper");
+      if (wrapper) wrapper.style.display = players.length === 0 ? "none" : "block";
+    }
+  }
+}
+
+
+function movePlayerToTeam(name, newTeam) {
+  if (!window.matchTeamAssignments || !attendanceHistoryData) return;
+
+  const dateKey = Object.keys(attendanceHistoryData).sort().pop();
+  const attendance = attendanceHistoryData[dateKey];
+  const rankObj = attendance.find(p => p.name === name);
+  if (!rankObj) return alert("❌ 출석 데이터에서 해당 이름을 찾을 수 없습니다.");
+
+  const { rank } = rankObj;
+
+  const currentTeam = ["teamA", "teamB", "teamC"].find(teamKey =>
+    window.matchTeamAssignments[teamKey]?.some(p => p.name === name)
+  );
+  if (!currentTeam) return alert("❌ 현재 팀 정보에서 해당 이름을 찾을 수 없습니다.");
+
+  const currentList = window.matchTeamAssignments[currentTeam];
+  const playerIndex = currentList.findIndex(p => p.name === name);
+  if (playerIndex === -1) return alert("❌ 팀 목록에서 해당 이름을 찾을 수 없습니다.");
+
+  const player = currentList.splice(playerIndex, 1)[0]; // 기존 팀에서 제거
+
+  // 새 팀 리스트 설정
+  const newTeamKey = newTeam === "A팀" ? "teamA" : newTeam === "B팀" ? "teamB" : "teamC";
+  const newList = window.matchTeamAssignments[newTeamKey];
+
+  // 순위 기준 삽입 위치 계산
+  let insertIndex = newList.findIndex(p => {
+    const r = attendance.find(a => a.name === p.name);
+    return r && r.rank > rank;
+  });
+  if (insertIndex === -1) insertIndex = newList.length;
+
+  newList.splice(insertIndex, 0, player); // 새 팀에 삽입
+
+  // ✅ confirmedSelections 및 finalTeamResults 갱신
+  const originalPosition = player.position || "지각";
+  confirmedSelections[name] = `${newTeam} ${originalPosition}`;
+
+  if (!window.finalTeamResults) window.finalTeamResults = {};
+  if (!finalTeamResults[newTeam]) finalTeamResults[newTeam] = [];
+
+  // 기존 팀 결과에서 제거
+  Object.keys(finalTeamResults).forEach(t => {
+    finalTeamResults[t] = finalTeamResults[t].filter(p => p.name !== name);
+  });
+
+  // 새 팀에 추가
+  finalTeamResults[newTeam].push({ name, position: originalPosition });
+
+  localStorage.setItem("finalTeamResults", JSON.stringify(finalTeamResults));
+
+  // 결과 재렌더링
+  displayFinalTeamResults();
+}
+
+
+function showTeamChangeForm() {
+  const container = document.getElementById("teamChangeContainer");
+  if (!container) return console.error("❌ teamChangeContainer 요소가 존재하지 않습니다.");
+
+  let formArea = container.querySelector(".form-area");
+  if (!formArea) {
+    formArea = document.createElement("div");
+    formArea.className = "form-area";
+    container.appendChild(formArea);
+  }
+
+  formArea.innerHTML = "";
+
+  // ✅ 조퇴 아닌 인원만 추출 (confirmedSelections 기준)
+  const validNames = Object.entries(confirmedSelections)
+    .filter(([_, val]) => !val.includes("조퇴"))
+    .map(([name]) => name);
+
+  // ✅ 팀 목록 + confirmedSelections 병합하여 이름 수집
+  const allAssigned = [
+    ...(window.matchTeamAssignments?.teamA || []),
+    ...(window.matchTeamAssignments?.teamB || []),
+    ...(window.matchTeamAssignments?.teamC || []),
+  ];
+  const allNames = [...new Set([
+    ...allAssigned.map(p => p.name),
+    ...Object.keys(confirmedSelections)
+  ])];
+
+  const selectableNames = allNames.filter(name => validNames.includes(name));
+
+  // ✅ 이름 드롭다운
+  const nameSelect = document.createElement("select");
+  nameSelect.style.fontSize = "1.2rem";
+  nameSelect.style.marginRight = "2rem";
+  nameSelect.style.height = "2rem";
+nameSelect.style.lineHeight = "2rem";
+  nameSelect.innerHTML = "<option value=''>-- 이름 선택 --</option>";
+  selectableNames.forEach(n => {
+    nameSelect.innerHTML += `<option value="${n}">${getDisplayName(n)}</option>`;
+  });
+
+  // ✅ 팀 드롭다운
+  const teamSelect = document.createElement("select");
+  teamSelect.style.fontSize = "1.2rem";
+  teamSelect.style.marginRight = "2.5rem";
+  teamSelect.style.height = "2rem";
+teamSelect.style.lineHeight = "2rem";
+  teamSelect.innerHTML = "<option value=''>-- 팀 선택 --</option>";
+  if ((window.matchTeamAssignments?.teamA || []).length > 0) teamSelect.innerHTML += `<option value="A팀">A팀</option>`;
+  if ((window.matchTeamAssignments?.teamB || []).length > 0) teamSelect.innerHTML += `<option value="B팀">B팀</option>`;
+  if ((window.matchTeamAssignments?.teamC || []).length > 0) teamSelect.innerHTML += `<option value="C팀">C팀</option>`;
+
+  // ✅ 이동 버튼
+  const confirmButton = document.createElement("button");
+  confirmButton.textContent = "이동";
+  confirmButton.style.fontSize = "1.2rem";
+  confirmButton.style.padding = "0.4rem 1rem";
+  confirmButton.style.cursor = "pointer";
+  confirmButton.onclick = () => {
+    const selectedName = nameSelect.value;
+    const selectedTeam = teamSelect.value;
+    if (selectedName && selectedTeam) {
+      movePlayerToTeam(selectedName, selectedTeam);
+      displayFinalTeamResults();  // 결과 반영
+    }
+  };
+
+  // ✅ 닫기 버튼
+  const closeBtn = document.createElement("button");
+  closeBtn.textContent = "닫기";
+  closeBtn.style.fontSize = "1.2rem";
+  closeBtn.style.padding = "0.4rem 1rem";
+  closeBtn.style.marginLeft = "1rem";
+  closeBtn.style.cursor = "pointer";
+  closeBtn.onclick = () => formArea.innerHTML = "";
+
+  // ✅ 렌더링
+  formArea.appendChild(nameSelect);
+  formArea.appendChild(teamSelect);
+  formArea.appendChild(confirmButton);
+  formArea.appendChild(closeBtn);
+}
+
+function getTeamColorClass(team) {
+  if (team === "A팀") return "team-a";
+  if (team === "B팀") return "team-b";
+  if (team === "C팀") return "team-c";
+  return "";
+}
+
+
 
 
 
@@ -2905,6 +3452,16 @@ margin-bottom: 0.3rem;         /* 제목과의 간격 조정 */
     }
   }
 </script>
+
+<!-- ✅ 넓은 폭 적용 -->
+<div id="resultModalOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 9999;">
+  <div id="resultModalContent" style="background: white; width: 80vw; max-height: 80%; overflow-y: auto;
+    padding: 1.5rem; border-radius: 12px; box-shadow: 0 0 10px rgba(0,0,0,0.4); text-align: center;">
+    <button onclick="closeResultModal()" style="float: right; margin-bottom: 1rem;">닫기</button>
+    <div id="resultModalBody"></div>
+  </div>
+</div>
 
 
 </body>
