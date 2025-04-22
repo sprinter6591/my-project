@@ -1308,6 +1308,10 @@ if (teamC.length > 0) {
   document.getElementById("drawModalOverlay").style.display = "flex";
 
   console.log("쪽지 목록 확인:", shuffledNotes);
+  console.log("A팀 포지션:", 1 + dfA + mfA + fwA, "휴식:", teamA.length - (1 + dfA + mfA + fwA));
+console.log("B팀 포지션:", 1 + dfB + mfB + fwB, "휴식:", teamB.length - (1 + dfB + mfB + fwB));
+console.log("총 생성된 쪽지 수:", notes.length);
+console.log("A팀 인원:", teamA.length, "B팀 인원:", teamB.length, "C팀 인원:", teamC.length);
 }
 
 
@@ -2102,15 +2106,16 @@ function showSelectionModal() {
   const modal = document.getElementById("selectionModal");
   const optionsDiv = document.getElementById("modalOptions");
   const closeBtn = document.getElementById("modalCloseBtn");
-if (closeBtn) closeBtn.style.display = "none";
+  if (closeBtn) closeBtn.style.display = "none";
   optionsDiv.innerHTML = "";
 
-  let hasValidButton = false; // 유효한 선택 버튼이 있는지 확인
+  let hasValidButton = false;
 
-  openedEnvelopes.forEach((item, i) => {
-    if (!item || typeof item.value === "undefined") {
+  // ✅ index 추가!
+  openedEnvelopes.forEach((item, index) => {
+    if (!item || typeof item.index !== "number" || typeof item.value === "undefined") {
       console.warn("⚠️ openedEnvelopes 항목 오류:", item);
-      return; // 유효하지 않으면 건너뜀
+      return;
     }
 
     const btn = document.createElement("button");
@@ -2122,18 +2127,12 @@ if (closeBtn) closeBtn.style.display = "none";
     btn.style.borderRadius = "8px";
     btn.style.margin = "0.4rem";
 
-    // ✅ 팀별 배경색 구분
-    if (item.value.startsWith("A팀")) {
-      btn.style.backgroundColor = "#fff9c4"; // 연노랑
-    } else if (item.value.startsWith("B팀")) {
-      btn.style.backgroundColor = "#ffe0b2"; // 연주황
-    } else if (item.value.startsWith("C팀")) {
-      btn.style.backgroundColor = "#bbdefb"; // 연파랑
-    } else {
-      btn.style.backgroundColor = "#ffffff"; // 기본 흰색
-    }
+    // 팀별 배경색
+    if (item.value.startsWith("A팀")) btn.style.backgroundColor = "#fff9c4";
+    else if (item.value.startsWith("B팀")) btn.style.backgroundColor = "#ffe0b2";
+    else if (item.value.startsWith("C팀")) btn.style.backgroundColor = "#bbdefb";
 
-    btn.onclick = () => confirmSelection(i);
+    btn.onclick = () => confirmSelection(index);  // ✅ 수정된 부분
     optionsDiv.appendChild(btn);
     hasValidButton = true;
   });
@@ -2145,8 +2144,6 @@ if (closeBtn) closeBtn.style.display = "none";
   modal.style.display = "flex";
 }
 
-
-let lastSelection = null; // 최근 선택 기록 저장용
 
 function confirmSelection(selectedIndex) {
   const selected = openedEnvelopes[selectedIndex];
@@ -2171,11 +2168,12 @@ function confirmSelection(selectedIndex) {
 
   // ✅ 최근 선택 기억 (되돌릴 때 사용)
   lastSelection = {
-    playerName,
-    selectedIndex,
-    envelopeIndex: selected.index,
-    value: selected.value
-  };
+  playerName,
+  selectedIndex,
+  envelopeIndex: selected.index,
+  value: selected.value,
+  envelopesSnapshot: [...openedEnvelopes]  // 💾 필수!
+};
 
   // ✅ 확정 저장
   confirmedSelections[playerName] = selected.value;
@@ -2211,7 +2209,15 @@ function confirmSelection(selectedIndex) {
   currentPlayerIndex++;
  // 마지막 플레이어일 경우 모달을 닫지 않음
  if (currentPlayerIndex >= voteOrder.length) {
-  document.getElementById("saveDrawButton").style.display = "block";  // 저장 버튼 표시
+  const saveBtn = document.getElementById("saveDrawButton");
+  if (saveBtn) {
+    saveBtn.style.display = "block";  // ✅ 버튼이 존재할 경우에만 표시
+  } else {
+    console.warn("❗ 저장 버튼(saveDrawButton)이 DOM에 없습니다.");
+  }
+  displayFinalTeamResults(); // ✅ 결과 테이블 출력
+} else {
+  renderEnvelopes(); // ✅ 다음 사용자 쪽지 표시
 }
 
 
@@ -2239,14 +2245,9 @@ shuffle(remainingValues);
 remainingIndexes.forEach((i, idx) => {
   shuffledNotes[i] = remainingValues[idx];
 });
+// 선택 모달 닫기
+document.getElementById("selectionModal").style.display = "none";
 
-
-  // ✅ 다음 차례 UI 갱신
-  if (currentPlayerIndex >= voteOrder.length) {
-    displayFinalTeamResults();
-  } else {
-    renderEnvelopes();  // 🔄 셔플된 결과로 렌더링
-  }
 }
 function getDuplicateNames(memberList) {
   const nameCount = {};
@@ -2662,22 +2663,24 @@ function closeDrawModal() {
   document.getElementById("drawModalOverlay").style.display = "none";
 }
 function redoSelection() {
-  if (!lastSelection) {
+  if (!lastSelection || !lastSelection.envelopesSnapshot) {
     alert("되돌릴 수 있는 선택이 없습니다.");
     return;
   }
 
-  // 되돌릴 플레이어 정보
-  const { playerName, selectedIndex, envelopeIndex, value } = lastSelection;
+   // 되돌릴 플레이어 정보
+   const { playerName, envelopeIndex, envelopesSnapshot } = lastSelection;
 
-  // 확정 취소
-  delete confirmedSelections[playerName];
+   // 선택 취소
+   delete confirmedSelections[playerName];
+  const idx = confirmedIndexes.indexOf(envelopeIndex);
+  if (idx !== -1) confirmedIndexes.splice(idx, 1);
 
   // 현재 플레이어 인덱스 되돌리기
   currentPlayerIndex--;
 
-  // 쪽지 UI 복구
-  const box = document.getElementById(`envelope-${envelopeIndex}`);
+   // 쪽지 UI 복구
+   const box = document.getElementById(`envelope-${envelopeIndex}`);
   if (box) {
     box.textContent = "✉️";
     box.style.pointerEvents = "auto";
@@ -2687,9 +2690,14 @@ function redoSelection() {
   // 실시간 결과 갱신
   updateLiveResultTable();
 
-  // 쪽지 재렌더링 (모달 닫지 않음)
-  openedEnvelopes = [];
-  renderEnvelopes();
+ // 쪽지 상태 복원
+ openedEnvelopes = [...envelopesSnapshot];
+
+ // 모달 다시 표시
+showSelectionModal();
+
+  // 마지막 선택 정보 초기화
+  lastSelection = null;
 
   // 현재 뽑기 순서 정보 갱신
   showVotingInfo();
@@ -2887,7 +2895,16 @@ margin-bottom: 0.3rem;         /* 제목과의 간격 조정 */
   </div>
 </div>
 </div>
-
+<script>
+  function updateSelectedFileName(input) {
+    const display = document.getElementById("fileNameDisplay");
+    if (input.files.length > 0) {
+      display.textContent = input.files[0].name;
+    } else {
+      display.textContent = "선택된 파일 없음";
+    }
+  }
+</script>
 
 
 </body>
