@@ -1241,7 +1241,10 @@ function suggestFormation(team) {
     10: ["4-4-1", "3-4-2", "3-5-1", "4-3-2"],
     9: ["3-4-1", "4-3-1", "3-3-2"],
     8: ["3-3-1", "2-4-1", "4-2-1"],
-    7: ["3-3-0", "2-3-1", "3-2-1"]
+    7: ["3-3-0", "2-3-1", "3-2-1"],
+    6: ["2-2-1", "1-2-2", "2-3-0"],
+    5: ["1-2-1", "2-2-0", "1-1-2"],
+    4: ["1-1-1", "1-2-0"]
   };
   const recommended = list[starter] || [];
 
@@ -2009,6 +2012,11 @@ function assignTiedRanks(data) {
 
 
 function showTop10() {
+  if (!Array.isArray(savedAttendanceData) || savedAttendanceData.length === 0) {
+    alert("출석 저장 후에 확인할 수 있습니다.");
+    return;
+  }
+
   const startDate = document.getElementById("seasonStart").value;
   const endDate = document.getElementById("seasonEnd").value;
   if (!startDate || !endDate) {
@@ -2016,36 +2024,47 @@ function showTop10() {
     return;
   }
 
-  const allScores = getAllMemberScores();
-const sorted = assignTiedRanks([...allScores].sort((a, b) => b.score - a.score || a.name.localeCompare(b.name, "ko"))).slice(0, 10);
+  const memberNames = memberList.map(m => m.name);
+  const filtered = savedAttendanceData.filter(p => memberNames.includes(p.name));
+
+  const allScores = getAllMemberScores(); // 점수 계산
+  const sorted = assignTiedRanks([...allScores].sort((a, b) => 
+    b.score - a.score || a.name.localeCompare(b.name, "ko")
+  )).slice(0, 10);
 
   let html = `<strong>시즌 기간:</strong> ${startDate} ~ ${endDate}<br><br>`;
   html += `
-    <table border="1" cellpadding="6" style="border-collapse: collapse; width:100%; text-align:center;">
-      <thead style="background-color:#eee;">
+    <table border="1" cellpadding="8" style="border-collapse: collapse; width: 100%; text-align: center;">
+      <thead style="background-color: #eee;">
         <tr>
-          <th>순위</th><th>이름</th><th>포상금 (예정)</th>
+          <th>순위</th>
+          <th>이름</th>
+          <th>포상금 (예정)</th>
         </tr>
-      </thead><tbody>
+      </thead>
+      <tbody>
   `;
 
   sorted.forEach(p => {
     const prize = prizeMap[p.rank] || 0;
-    html += `<tr>
-      <td>${p.rank}위</td>
-      <td>${p.name}</td>
-      <td>${prize.toLocaleString("ko-KR")}원</td>
-    </tr>`;
+    html += `
+      <tr>
+        <td>${p.rank}위</td>
+        <td>${p.name}</td>
+        <td>${prize.toLocaleString("ko-KR")}원</td>
+      </tr>
+    `;
   });
 
   html += `</tbody></table>`;
   document.getElementById("top10Display").innerHTML = html;
 }
 
+
 function getAllMemberScores() {
   if (!window.attendanceHistoryData || !Array.isArray(memberList)) return [];
 
-  const memberNames = memberList.map(m => m.name); // 정식 회원 목록
+  const memberNames = memberList.map(m => m.name);
   const scores = {};
 
   for (const date in attendanceHistoryData) {
@@ -2059,6 +2078,7 @@ function getAllMemberScores() {
 
   return Object.entries(scores).map(([name, score]) => ({ name, score }));
 }
+
 
 // 기본 포상금 설정 (수정 가능)
 let prizeMap = {
@@ -2106,57 +2126,6 @@ function savePrizeMap() {
   document.getElementById("rewardSettingArea").style.display = "none";
   alert("포상금이 저장되었습니다.");
 }
-
-
-function showTop10() {
-  if (savedAttendanceData.length === 0) {
-    alert("출석 저장 후에 확인할 수 있습니다.");
-    return;
-  }
-
-  const startDate = document.getElementById("seasonStart").value;
-  const endDate = document.getElementById("seasonEnd").value;
-
-  if (!startDate || !endDate) {
-    alert("시즌 시작일과 마감일을 설정해주세요.");
-    return;
-  }
-  let memberNames = memberList.map(m => m.name);
-  let filtered = savedAttendanceData.filter(p => memberNames.includes(p.name));
-
-  // 합산 점수 정렬 (현재는 단일 출석 저장 기준으로 정렬)
-  const allScores = getAllMemberScores();
-const sorted = assignTiedRanks([...allScores].sort((a, b) => b.score - a.score || a.name.localeCompare(b.name, "ko"))).slice(0, 10);
-
-    let html = `<strong>시즌 기간:</strong> ${startDate} ~ ${endDate}<br><br>`;
-html += `
-  <table border="1" cellpadding="8" style="border-collapse: collapse; width: 100%; text-align: center;">
-    <thead style="background-color: #eee;">
-      <tr>
-        <th>순위</th>
-        <th>이름</th>
-        <th>포상금 (예정)</th>
-      </tr>
-    </thead>
-    <tbody>
-`;
-
-sorted.forEach((p) => {
-  const prize = prizeMap[p.rank] || 0;
-  const prizeStr = prize.toLocaleString("ko-KR") + "원";
-  html += `
-    <tr>
-      <td>${p.rank}위</td>
-      <td>${p.name}</td>
-      <td>${prizeStr}</td>
-    </tr>`;
-});
-
-html += `</tbody></table>`;
-document.getElementById("top10Display").innerHTML = html;
-
-}
-
 
 function showAllScores() {
   const allScores = getAllMemberScores();
@@ -2237,9 +2206,6 @@ function showSelectionModal() {
 function confirmSelection(selectedIndex) {
   const selected = openedEnvelopes[selectedIndex];
   const player = voteOrder[currentPlayerIndex];
-  console.log("🧪 선택된 쪽지 정보:", selected);
-  console.log("🧪 selected.index:", selected?.index);
-  console.log("🧪 shuffledNotes[selected.index]:", shuffledNotes[selected?.index]);
 
   if (!selected || typeof selected.value === "undefined" || typeof selected.index === "undefined") {
     console.error("❌ 선택한 쪽지의 값 또는 인덱스가 없습니다:", selected);
@@ -2255,22 +2221,17 @@ function confirmSelection(selectedIndex) {
 
   const playerName = player.name;
 
-  // ✅ 최근 선택 기억 (되돌릴 때 사용)
   lastSelection = {
-  playerName,
-  selectedIndex,
-  envelopeIndex: selected.index,
-  value: selected.value,
-  envelopesSnapshot: [...openedEnvelopes]  // 💾 필수!
-};
+    playerName,
+    selectedIndex,
+    envelopeIndex: selected.index,
+    value: selected.value,
+    envelopesSnapshot: [...openedEnvelopes]
+  };
 
-  // ✅ 확정 저장
   confirmedSelections[playerName] = selected.value;
-  confirmedIndexes.push(selected.index);  // ✅ 확정된 인덱스 기록
+  confirmedIndexes.push(selected.index);
 
-  console.log("✅ 저장됨:", playerName, "→", selected.value);
-
-  // ✅ 쪽지 이모지 모양 변경 + 비활성화
   const confirmedBox = document.getElementById(`envelope-${selected.index}`);
   if (confirmedBox) {
     confirmedBox.textContent = "✅";
@@ -2278,35 +2239,58 @@ function confirmSelection(selectedIndex) {
     confirmedBox.style.opacity = "0.6";
   }
 
-  // ✅ 실시간 표 갱신
   updateLiveResultTable();
 
-  // 나머지 쪽지 원래대로
   openedEnvelopes.forEach((item) => {
-  if (item.index !== selected.index && typeof item.index !== "undefined") {
-    const box = document.getElementById(`envelope-${item.index}`);
-    if (box) {
-      box.textContent = "✉️";
-      box.style.pointerEvents = "auto";
-      box.style.opacity = "1";
-    }
+    if (item.index !== selected.index && typeof item.index !== "undefined") {
+      const box = document.getElementById(`envelope-${item.index}`);
+      if (box) {
+        box.textContent = "✉️";
+        box.style.pointerEvents = "auto";
+        box.style.opacity = "1";
+      }
     }
   });
 
-  // 다음 순서로 이동
-  openedEnvelopes = [];
+  // ✅ 모든 뽑기 완료 시 다음 동작 자동 실행
+  if (currentPlayerIndex === voteOrder.length - 1) {
+    setTimeout(() => {
+      // 1. 결과 저장
+      const savedResults = { A: [], B: [], C: [] };
+      Object.entries(confirmedSelections).forEach(([name, pos]) => {
+        const team = pos.startsWith("A팀") ? "A" : pos.startsWith("B팀") ? "B" : "C";
+        const position = pos.replace(/^(A팀|B팀|C팀) /, "");
+        savedResults[team].push({ name, position });
+      });
+      localStorage.setItem("savedDrawResult", JSON.stringify(savedResults));
+      localStorage.setItem("finalTeamResults", JSON.stringify(savedResults));
+
+      // 2. 팀구분 탭에 테이블 렌더링
+      renderTeamDivisionResult();
+
+      // 3. 탭 전환 및 스크롤 이동
+      showTab("teamTab");
+      window.scrollTo(0, 0);
+    }, 300);
+  }
+
   currentPlayerIndex++;
- // 마지막 플레이어일 경우 모달을 닫지 않음
- if (currentPlayerIndex >= voteOrder.length) {
-  displayFinalTeamResults(); // ✅ 결과 테이블 출력
-} else {
-  renderEnvelopes(); // ✅ 다음 사용자 쪽지 표시
+
+  // ✅ 모달 닫기
+  const modal = document.getElementById("selectionModal");
+  if (modal) modal.style.display = "none";
+
+  // ✅ 다음 사람의 뽑기 시작
+  if (currentPlayerIndex < voteOrder.length) {
+    drawMatchPositions();
+  }
 }
 
-// 선택 모달 닫기
-document.getElementById("selectionModal").style.display = "none";
 
-}
+
+// 전역 중복 이름 리스트
+let duplicateNames = [];
+
 function getDuplicateNames(memberList) {
   const nameCount = {};
   memberList.forEach(m => {
@@ -2317,19 +2301,13 @@ function getDuplicateNames(memberList) {
     .filter(([_, count]) => count > 1)
     .map(([name]) => name);
 }
-// 전역에 추가
-let duplicateNames = [];
 
 function getDisplayName(name) {
-  const nameCount = {};
-  memberList.forEach(m => {
-    nameCount[m.name] = (nameCount[m.name] || 0) + 1;
-  });
-
-  const isDuplicate = nameCount[name] > 1;
+  const isDup = duplicateNames.includes(name);
   const member = memberList.find(m => m.name === name);
-  return isDuplicate && member?.team ? `${name} (${member.team})` : name;
+  return isDup && member?.team ? `${name} (${member.team})` : name;
 }
+
 
 
 
@@ -2358,7 +2336,7 @@ function updateLiveResultTable() {
       <div id="liveCWrapper" style="display:none;">
         <h3 style="text-align: center;">C팀 추첨 결과</h3>
         <table id="liveC" border="1" cellpadding="8" style="background-color: #bbdefb; border-collapse: collapse; width: 45vw; min-width: 150px; max-width: 360px; text-align: center;">
-          <thead><tr><th>이름</th></tr></thead>
+          <thead><tr><th>이름</th><th>포지션</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -2379,48 +2357,68 @@ function updateLiveResultTable() {
 
   let bCount = 0, cCount = 0;
 
- // C팀이 포지션을 뽑았는지 확인하는 변수 (boolean)
-const cTeamHasPositions = (window.matchTeamAssignments?.teamCPositions?.length ?? 0) > 0;
+  const cTeamHasPositions = (window.finalTeamResults?.C || []).some(p => p.position);
 
-Object.entries(confirmedSelections).forEach(([name, pos]) => {
-  const cleanPos = pos.replace(/^A팀 |^B팀 |^C팀 /, "");
-  const displayName = getDisplayName(name);
-  const team = pos.slice(0, 2); // A팀 / B팀 / C팀
+  Object.entries(confirmedSelections).forEach(([name, pos]) => {
+    const cleanPos = pos.replace(/^A팀 |^B팀 |^C팀 /, "");
+    const displayName = getDisplayName(name);
+    const team = pos.slice(0, 2); // A팀 / B팀 / C팀
 
-  if (team === "A팀") {
-    aTable.innerHTML += `<tr><td>${displayName}</td><td>${cleanPos}</td></tr>`;
-  } else if (team === "B팀" && bTable) {
-    bTable.innerHTML += `<tr><td>${displayName}</td><td>${cleanPos}</td></tr>`;
-    bCount++;
-  } else if (team === "C팀" && cTable) {
-    const row = cTeamHasPositions
-      ? `<tr><td>${displayName}</td><td>${cleanPos}</td></tr>`
-      : `<tr><td>${displayName}</td><td></td></tr>`;
-    cTable.innerHTML += row;
-    cCount++;
-  }
-});
+    if (team === "A팀") {
+      aTable.innerHTML += `<tr><td>${displayName}</td><td>${cleanPos}</td></tr>`;
+    } else if (team === "B팀" && bTable) {
+      bTable.innerHTML += `<tr><td>${displayName}</td><td>${cleanPos}</td></tr>`;
+      bCount++;
+    } else if (team === "C팀" && cTable) {
+      const row = `<tr><td>${displayName}</td><td>${cTeamHasPositions ? cleanPos : ""}</td></tr>`;
+      cTable.innerHTML += row;
+      cCount++;
+    }
+  });
 
   if (bCount > 0 && bContainer) bContainer.style.display = "block";
   if (cCount > 0 && cContainer) cContainer.style.display = "block";
-  else if (cContainer) cContainer.style.display = "none";
 }
 
 
 
 
 function displayFinalTeamResults() {
-  let html = "";
+  if (!window.confirmedSelections || !window.memberList) return;
+
   const resultDiv = document.getElementById("matchResult");
 
-  const assigned = {};
-  Object.entries(confirmedSelections).forEach(([name, pos]) => {
-    assigned[name] = pos;
-  });
+  const teamResultDiv = document.getElementById("teamDivisionResult");
+  if (teamResultDiv) teamResultDiv.innerHTML = "";
 
+  const teamStyles = { A: "#fff9c4", B: "#ffe0b2", C: "#bbdefb" };
   const teamData = { A: [], B: [], C: [] };
 
-  Object.entries(assigned).forEach(([name, pos]) => {
+  // 동명이인 체크용
+  const nameCount = {};
+  memberList.forEach(m => {
+    nameCount[m.name] = (nameCount[m.name] || 0) + 1;
+  });
+  const duplicateNames = Object.entries(nameCount)
+    .filter(([_, count]) => count > 1)
+    .map(([name]) => name);
+  const getDisplayName = (name) => {
+    const isDup = duplicateNames.includes(name);
+    const member = memberList.find(m => m.name === name);
+    return isDup && member?.team ? `${name} (${member.team})` : name;
+  };
+
+  // 출석 정렬
+  const dateKey = Object.keys(attendanceHistoryData || {}).sort().pop();
+  const attendanceData = attendanceHistoryData?.[dateKey] || [];
+
+  const sortedNames = Object.entries(confirmedSelections).sort(([a], [b]) => {
+    const rankA = attendanceData.find(p => p.name === a)?.rank ?? 999;
+    const rankB = attendanceData.find(p => p.name === b)?.rank ?? 999;
+    return rankA - rankB;
+  });
+
+  sortedNames.forEach(([name, pos]) => {
     const teamKey = pos.startsWith("A팀") ? "A" :
                     pos.startsWith("B팀") ? "B" : "C";
     teamData[teamKey].push({
@@ -2429,53 +2427,12 @@ function displayFinalTeamResults() {
     });
   });
 
-  // 동명이인 구별용
-  const nameCount = {};
-  memberList.forEach(m => {
-    nameCount[m.name] = (nameCount[m.name] || 0) + 1;
-  });
-  const duplicateNames = Object.entries(nameCount)
-    .filter(([_, count]) => count > 1)
-    .map(([name]) => name);
-
-  const getDisplayName = (name) => {
-    const isDup = duplicateNames.includes(name);
-    const member = memberList.find(m => m.name === name);
-    return isDup && member?.team ? `${name} (${member.team})` : name;
-  };
-
-  // 출석 기록 기준 정렬
-  const dateKey = Object.keys(attendanceHistoryData || {}).sort().pop();
-  const attendanceData = attendanceHistoryData?.[dateKey] || [];
-
-  const sortedAssigned = Object.entries(assigned).sort(([nameA], [nameB]) => {
-    const rankA = attendanceData.find(p => p.name === nameA)?.rank ?? 999;
-    const rankB = attendanceData.find(p => p.name === nameB)?.rank ?? 999;
-    return rankA - rankB;
-  });
-
-  const sortedTeamData = { A: [], B: [], C: [] };
-  sortedAssigned.forEach(([name, pos]) => {
-    const teamKey = pos.startsWith("A팀") ? "A" :
-                    pos.startsWith("B팀") ? "B" : "C";
-    sortedTeamData[teamKey].push({
-      name,
-      position: pos.replace(/^[ABC]팀 /, "")
-    });
-  });
-
-  const teamStyles = {
-    A: "#fff9c4",
-    B: "#ffe0b2",
-    C: "#bbdefb"
-  };
-
-  html += `<div style="display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap;">`;
+  let html = `<div style="display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap;">`;
   ["A", "B"].forEach(teamKey => {
-    const team = sortedTeamData[teamKey];
+    const team = teamData[teamKey];
     html += `<div>
       <h3 style="text-align: center;">${teamKey}팀</h3>
-      <table class="team-result-table team-${teamKey.toLowerCase()}-color" border="1" cellpadding="6" style="border-collapse: collapse; width:300px; text-align:center;">
+      <table class="team-result-table" border="1" cellpadding="6" style="border-collapse: collapse; width:300px; text-align:center; background-color: ${teamStyles[teamKey]};">
         <tr><th>순</th><th>이름</th><th>포지션</th><th>조퇴</th></tr>
         ${team.map((p, i) => `
           <tr>
@@ -2488,42 +2445,48 @@ function displayFinalTeamResults() {
     </div>`;
   });
 
-  if (sortedTeamData.C.length > 0) {
+  if (teamData.C.length > 0) {
     html += `
       <div id="cTeamResultArea" style="margin-top:2rem;">
         <h3 style="text-align: center;">C팀 추첨 결과</h3>
         <table border="1" cellpadding="6" style="border-collapse: collapse; width:300px; text-align:center; background-color: ${teamStyles.C}; margin: 0 auto;">
           <tr><th>순</th><th>이름</th></tr>
-          ${sortedTeamData.C.map((p, i) => `
+          ${teamData.C.map((p, i) => `
             <tr><td>${i + 1}</td><td>${getDisplayName(p.name)}</td></tr>`).join("")}
         </table>
       </div>`;
   }
 
   document.getElementById("teamDivisionResult").innerHTML = html;
-  document.getElementById("resultModalOverlay").style.display = "none";
-  document.getElementById("drawModalOverlay").style.display = "none";
+
+  const resultModal = document.getElementById("resultModalOverlay");
+  if (resultModal) resultModal.style.display = "none";
+  const drawModal = document.getElementById("drawModalOverlay");
+  if (drawModal) drawModal.style.display = "none";
+
   showTab("teamTab");
   window.scrollTo(0, 0);
-  localStorage.setItem("finalTeamResults", JSON.stringify(sortedTeamData));
+  localStorage.setItem("finalTeamResults", JSON.stringify(teamData));
 }
+
 
 
 
 function closeResultModal() {
-  document.getElementById("resultModalOverlay").style.display = "none";
+  const modal = document.getElementById("resultModalOverlay");
+  if (modal) modal.style.display = "none";
 }
-
 
 function markLeave(name, teamKey) {
   if (!confirm(`${name} 님을 ${teamKey}팀에서 조퇴 처리할까요?`)) return;
 
-  // confirmedSelections에서 제거
   delete confirmedSelections[name];
 
-  // 출석 관리 데이터에 leave 반영
+  if (!window.attendanceHistoryData) return alert("출석 데이터가 없습니다.");
   const dateKey = Object.keys(attendanceHistoryData).sort().pop();
   const data = attendanceHistoryData[dateKey];
+  if (!data) return alert("해당 날짜의 출석 데이터가 없습니다.");
+
   const entry = data.find(p => p.name === name);
   if (entry) {
     entry.leave = true;
@@ -2531,31 +2494,33 @@ function markLeave(name, teamKey) {
   }
 
   localStorage.setItem("attendanceHistoryData", JSON.stringify(attendanceHistoryData));
-  displayFinalTeamResults(); // 다시 렌더링
+  displayFinalTeamResults();
 }
 
-
 function resetDraw() {
-  // 선택 기록 초기화
   openedEnvelopes = [];
   confirmedSelections = {};
   confirmedIndexes = [];
   currentPlayerIndex = 0;
 
-  // UI 초기화
   renderEnvelopes();
-  updateLiveResultTable();  // 실시간 결과 테이블도 초기화
-  document.getElementById("matchResult").innerHTML = ""; // 결과 테이블 제거
-}
+  updateLiveResultTable();
 
+  const resultEl = document.getElementById("matchResult");
+  if (resultEl) resultEl.innerHTML = "";
+}
 
 function closeSelectionModal() {
-  document.getElementById("selectionModal").style.display = "none";
+  const modal = document.getElementById("selectionModal");
+  if (modal) modal.style.display = "none";
 }
-let voteOrder = [];           // 투표 순서 (ex. [이름, 이름, ...])
 
+
+let voteOrder = [];
 
 function showVotingInfo() {
+  if (!voteOrder[currentPlayerIndex]) return;
+
   const player = voteOrder[currentPlayerIndex];
   const votes = playerVoteCount[currentPlayerIndex];
 
@@ -2565,21 +2530,34 @@ function showVotingInfo() {
 }
 
 function setupVotingOrder() {
-  voteOrder = [...matchPlayers];  // 출석 순서로 복사
+  if (!Array.isArray(matchPlayers) || matchPlayers.length === 0) {
+    console.warn("⚠️ matchPlayers가 비어있습니다.");
+    return;
+  }
+
+  voteOrder = [...matchPlayers];
   const total = voteOrder.length;
   const half = Math.ceil(total / 2);
 
-  playerVoteCount = voteOrder.map((player, idx) => {
-    if (idx <= 1) return 3;          // 1등, 2등
-    if (idx < half) return 2;        // 상위 절반
-    return 1;                        // 나머지
+  playerVoteCount = voteOrder.map((_, idx) => {
+    if (idx <= 1) return 3;
+    if (idx < half) return 2;
+    return 1;
   });
 
   currentPlayerIndex = 0;
 }
 
+
 function drawScoreChart(data) {
-  const ctx = document.getElementById("scoreChart").getContext("2d");
+  const canvas = document.getElementById("scoreChart");
+  if (!canvas) return console.error("❌ scoreChart 캔버스를 찾을 수 없습니다.");
+  if (!Array.isArray(data) || data.length === 0) {
+    console.warn("⚠️ 점수 데이터가 없습니다.");
+    return;
+  }
+
+  const ctx = canvas.getContext("2d");
   if (window.scoreChartInstance) {
     window.scoreChartInstance.destroy();
   }
@@ -2588,36 +2566,42 @@ function drawScoreChart(data) {
   const scores = data.map(p => p.score);
 
   window.scoreChartInstance = new Chart(ctx, {
-  type: 'bar',
-  data: {
-    labels: labels,
-    datasets: [{
-      label: '참여 점수',
-      data: scores,
-      backgroundColor: 'rgba(75, 192, 192, 0.6)',
-      borderColor: 'rgba(75, 192, 192, 1)',
-      borderWidth: 1
-    }]
-  },
-  options: {
-    indexAxis: 'y', // 가로 막대그래프
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      title: {
-        display: true,
-        text: '회원별 출석 참여 점수',
-        font: { size: 14 }
-      }
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: '참여 점수',
+        data: scores,
+        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+        borderColor: 'rgba(75, 192, 192, 1)',
+        borderWidth: 1
+      }]
     },
-    scales: {
-      x: { beginAtZero: true, precision: 0 }
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        title: {
+          display: true,
+          text: '회원별 출석 참여 점수',
+          font: {
+            size: 14,
+            family: "'GmarketSans', sans-serif"
+          }
+        }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          precision: 0
+        }
+      }
     }
-  }
-});
-
+  });
 }
+
 
 function toggleAttendanceHistory() {
   const area = document.getElementById("attendanceHistoryArea");
@@ -2653,7 +2637,13 @@ function renderAttendanceHistory() {
       const entry = records.find(r => r.name === member.name);
       let status = "";
       if (entry) {
-        status = (entry.late || entry.leave) ? "지각" : "참석";
+        if (entry.leave) {
+          status = "조퇴";
+        } else if (entry.late) {
+          status = "지각";
+        } else {
+          status = "참석";
+        }
       }
       html += `<td>${status}</td>`;
     });
@@ -2663,12 +2653,17 @@ function renderAttendanceHistory() {
   html += "</tbody></table>";
   container.innerHTML = html;
 }
-  function renderTeamDivisionResult() {
+
+function renderTeamDivisionResult() {
   const container = document.getElementById("teamDivisionResult");
   container.innerHTML = ""; // 기존 내용 초기화
 
-  // A팀, B팀, C팀 데이터를 가져와야 함
-  const teams = { A: finalTeamA, B: finalTeamB, C: finalTeamC }; // 실제 배열 이름에 맞게 수정
+  const finalResults = JSON.parse(localStorage.getItem("finalTeamResults") || "{}");
+  const teams = {
+    A: finalResults["A팀"] || [],
+    B: finalResults["B팀"] || [],
+    C: finalResults["C팀"] || []
+  };
   const colors = { A: "#fff9c4", B: "#ffe0b2", C: "#bbdefb" };
 
   for (const team in teams) {
@@ -2684,8 +2679,7 @@ function renderAttendanceHistory() {
     teamBox.style.minWidth = "230px";
 
     const title = document.createElement("h3");
-    const formation = getFormationLabel(team); // 포메이션 표시 함수
-    title.textContent = `${team}팀 (${formation})`;
+    title.textContent = `${team}팀`;
     teamBox.appendChild(title);
 
     const table = document.createElement("table");
@@ -2699,7 +2693,7 @@ function renderAttendanceHistory() {
     const tbody = document.createElement("tbody");
     teams[team].forEach((player, i) => {
       const row = document.createElement("tr");
-      row.innerHTML = `<td>${i + 1}</td><td>${player.name}</td><td>${player.position}</td>`;
+      row.innerHTML = `<td>${i + 1}</td><td>${player.name}</td><td>${player.position || ""}</td>`;
       tbody.appendChild(row);
     });
 
@@ -2709,20 +2703,24 @@ function renderAttendanceHistory() {
   }
 }
 
+
 function confirmResetDrawModal() {
   const proceed = confirm("모든 선택을 리셋합니다.\n포지션 뽑기를 다시 하고 싶다면 확인 버튼을 누르세요.");
-  if (proceed) {
-    // 상태 초기화
-    currentPlayerIndex = 0;
-    openedEnvelopes = [];
-    confirmedSelections = {};
-    confirmedIndexes = []; // ✅ 선택 완료된 쪽지 인덱스도 초기화
+  if (!proceed) return;
 
-    // 쪽지 UI 초기화
-    renderEnvelopes(); // ✅ 쪽지 모양 다시 초기 상태(✉️)로
+  // 상태 초기화
+  currentPlayerIndex = 0;
+  openedEnvelopes = [];
+  confirmedSelections = {};
+  confirmedIndexes = [];
 
-    // 실시간 결과 테이블 초기화
-    document.getElementById("liveResultTable").innerHTML = `
+  // 쪽지 UI 초기화
+  renderEnvelopes();
+
+  // 실시간 결과 테이블 초기화
+  const liveResultTable = document.getElementById("liveResultTable");
+  if (liveResultTable) {
+    liveResultTable.innerHTML = `
       <div>
         <h3 style="text-align: center;">A팀 추첨 결과</h3>
         <table id="liveA" border="1" cellpadding="8" style="background-color: #fff9c4; border-collapse: collapse; width: 45vw; min-width: 150px; max-width: 360px; text-align: center;">
@@ -2745,33 +2743,46 @@ function confirmResetDrawModal() {
         </table>
       </div>
     `;
-
-    // 현재 순서 UI 초기화
-    document.getElementById("drawRankCell").textContent = "-";
-    document.getElementById("drawNameCell").textContent = "-";
-    document.getElementById("drawVoteCell").textContent = "-";
-
-    // 모달 닫기
-    document.getElementById("drawModalOverlay").style.display = "none";
-
-    // 사용자 안내 메시지
-    alert("초기화가 완료되었습니다. 다시 뽑기를 시작하려면 '포지션 뽑기' 버튼을 눌러주세요.");
   }
+
+  // 현재 순서 UI 초기화
+  const rankCell = document.getElementById("drawRankCell");
+  const nameCell = document.getElementById("drawNameCell");
+  const voteCell = document.getElementById("drawVoteCell");
+  if (rankCell) rankCell.textContent = "-";
+  if (nameCell) nameCell.textContent = "-";
+  if (voteCell) voteCell.textContent = "-";
+
+  // 모달 닫기
+  const modal = document.getElementById("drawModalOverlay");
+  if (modal) modal.style.display = "none";
+
+  // 사용자 알림
+  alert("초기화가 완료되었습니다. 다시 뽑기를 시작하려면 '포지션 뽑기' 버튼을 눌러주세요.");
 }
+
 
 
 
 
 
 function updatePositionHeader() {
+  if (!Array.isArray(drawOrder) || drawIndex < 0 || drawIndex >= drawOrder.length) {
+    console.warn("❗ drawOrder 또는 drawIndex가 유효하지 않습니다.");
+    return;
+  }
+
   const current = drawOrder[drawIndex];
   const rank = drawIndex + 1;
-  const name = current.name;
-  const votes = current.votes || 1; // 기본값 1장 (선택적으로 조정 가능)
+  const name = current.name || "이름 없음";
+  const votes = current.votes || 1;
 
   const headerText = `${rank}등 ${name} ${votes}장`;
-  document.getElementById("positionHeader").textContent = headerText;
+  const headerEl = document.getElementById("positionHeader");
+  if (headerEl) headerEl.textContent = headerText;
+  else console.warn("❗ positionHeader 요소가 존재하지 않습니다.");
 }
+
 
   </script>
 <!-- XLSX 스크립트 추가 -->
@@ -2867,6 +2878,8 @@ function redoSelection() {
     box.textContent = "✉️";
     box.style.pointerEvents = "auto";
     box.style.opacity = "1.0";
+    box.style.backgroundColor = "";  // 기본 배경으로 초기화
+    box.style.border = "";  // 테두리 초기화
   }
 
   // 실시간 결과 테이블 갱신
@@ -2895,18 +2908,26 @@ function confirmReset() {
   }
 }
 function saveDrawResult() {
-  const savedResults = { A: [], B: [], C: [] };
+  if (Object.keys(confirmedSelections).length === 0) {
+  return alert("⚠️ 저장할 뽑기 결과가 없습니다.");
+}
+ const savedResults = { A: [], B: [], C: [] };
 
-  Object.entries(confirmedSelections).forEach(([name, pos]) => {
-    const team = pos.startsWith("A팀") ? "A"
-              : pos.startsWith("B팀") ? "B"
-              : pos.startsWith("C팀") ? "C" : null;
+Object.entries(confirmedSelections).forEach(([name, pos]) => {
+  // 만약 confirmedSelections[name]이 그냥 포지션이라면, 팀을 따로 추론해야 함
+  const team =
+    pos.startsWith("A팀") ? "A" :
+    pos.startsWith("B팀") ? "B" :
+    pos.startsWith("C팀") ? "C" : null;
 
-    if (team) {
-      const position = pos.replace(/^A팀 |^B팀 |^C팀 /, "");
-      savedResults[team].push({ name, position });
-    }
-  });
+  if (!team) {
+    console.warn("❌ 팀 정보 없음:", name, pos);
+    return;
+  }
+
+  const position = pos.replace(/^(A팀|B팀|C팀) /, "");
+  savedResults[team].push({ name, position });
+});
 
   localStorage.setItem("savedDrawResult", JSON.stringify(savedResults));
   alert("✅ 뽑기 결과가 저장되었습니다. 2~4경기에 자동으로 불러옵니다.");
@@ -2930,22 +2951,25 @@ function loadSavedDrawResult() {
   if (!data) return;
 
   const parsed = JSON.parse(data);
-  // 예: A팀을 2경기 테이블에 자동 배치
-  populateMatchTable("match2A", parsed.A);
-  populateMatchTable("match2B", parsed.B);
-  populateMatchTable("match2C", parsed.C);
+  populateMatchTable("match2A", parsed.A || []);
+  populateMatchTable("match2B", parsed.B || []);
+  populateMatchTable("match2C", parsed.C || []);
 }
+
 
 function populateMatchTable(tableId, players) {
   const tbody = document.getElementById(tableId)?.querySelector("tbody");
   if (!tbody) return;
 
-  tbody.innerHTML = "";
+  let rows = "";
   players.forEach(player => {
-    const row = `<tr><td>${player.name}</td><td>${player.position}</td></tr>`;
-    tbody.innerHTML += row;
+    rows += `<tr><td>${player.name}</td><td>${player.position}</td></tr>`;
   });
+
+  tbody.innerHTML = rows;
 }
+
+
 function debugAddRandomAttendance() {
   if (memberList.length === 0) {
     alert("먼저 회원 명단을 업로드해야 합니다.");
@@ -3008,8 +3032,10 @@ nameSelect.style.lineHeight = "2rem";
 
 nameSelect.innerHTML = `<option value="">-- 성명 선택 --</option>`;
 memberList.forEach(m => {
-  const att = getAttendanceStatus(m.name); // 출석 기록에서 상태 반환하는 함수
-  const isValid = (!att || att.leave === true) && !allAssignedNames.includes(m.name);
+  const att = getAttendanceStatus(m.name);
+const isValid =
+  (!att || (att.late !== true && att.leave !== true && att.present !== true)) &&
+  !allAssignedNames.includes(m.name);
   if (isValid) {
     const label = getDisplayName(m.name);
     nameSelect.innerHTML += `<option value="${m.name}">${label}</option>`;
@@ -3076,8 +3102,11 @@ const teamKey = team === "A팀" ? "teamA" :
   localStorage.setItem("finalTeamResults", JSON.stringify(finalTeamResults));
     if (name !== "__비회원__") {
   if (!window.attendanceHistoryData) window.attendanceHistoryData = {};
-  const dateKey = Object.keys(attendanceHistoryData).sort().pop();
-  const data = attendanceHistoryData[dateKey];
+  const dateKeys = Object.keys(attendanceHistoryData || {});
+if (dateKeys.length === 0) return alert("출석 데이터가 존재하지 않습니다.");
+
+const dateKey = dateKeys.sort().pop();
+const data = attendanceHistoryData[dateKey];
   const existing = data.find(p => p.name === name);
   if (existing) {
     existing.leave = false;
@@ -3096,6 +3125,7 @@ const teamKey = team === "A팀" ? "teamA" :
   // ✅ 비회원 처리
   if (!window.attendanceHistoryData) window.attendanceHistoryData = {};
   const dateKey = Object.keys(attendanceHistoryData).sort().pop();
+  if (!attendanceHistoryData[dateKey]) attendanceHistoryData[dateKey] = [];
   const data = attendanceHistoryData[dateKey];
   data.push({
     name,
@@ -3184,59 +3214,63 @@ function updateTeamAssignmentTables() {
 }
 
 
-function movePlayerToTeam(name, newTeam) {
-  if (!window.matchTeamAssignments || !attendanceHistoryData) return;
+function movePlayerToTeam() {
+  const name = document.getElementById("moveNameSelect").value;
+  const newTeam = document.getElementById("moveTeamSelect").value;
 
-  const dateKey = Object.keys(attendanceHistoryData).sort().pop();
-  const attendance = attendanceHistoryData[dateKey];
-  const rankObj = attendance.find(p => p.name === name);
-  if (!rankObj) return alert("❌ 출석 데이터에서 해당 이름을 찾을 수 없습니다.");
+  if (!name || !newTeam) {
+    alert("이름과 이동할 팀을 모두 선택하세요.");
+    return;
+  }
 
-  const { rank } = rankObj;
+  if (!window.finalTeamResults) {
+    console.error("❌ finalTeamResults가 없습니다.");
+    return;
+  }
 
-  const currentTeam = ["teamA", "teamB", "teamC"].find(teamKey =>
-    window.matchTeamAssignments[teamKey]?.some(p => p.name === name)
-  );
-  if (!currentTeam) return alert("❌ 현재 팀 정보에서 해당 이름을 찾을 수 없습니다.");
+  // 현재 속한 팀 찾기
+  let currentTeam = null;
+  for (const team in finalTeamResults) {
+    if (finalTeamResults[team].some(player => player.name === name)) {
+      currentTeam = team;
+      break;
+    }
+  }
 
-  const currentList = window.matchTeamAssignments[currentTeam];
-  const playerIndex = currentList.findIndex(p => p.name === name);
-  if (playerIndex === -1) return alert("❌ 팀 목록에서 해당 이름을 찾을 수 없습니다.");
+  if (!currentTeam) {
+    alert("선택한 이름이 어떤 팀에도 속해 있지 않습니다.");
+    return;
+  }
+
+  if (currentTeam === newTeam) {
+    alert("같은 팀으로는 이동할 수 없습니다.");
+    return;
+  }
+
+  // 기존 팀에서 해당 선수 제거
+  const currentList = finalTeamResults[currentTeam];
+  const playerIndex = currentList.findIndex(player => player.name === name);
+  if (playerIndex === -1) {
+    alert("선수를 기존 팀에서 찾을 수 없습니다.");
+    return;
+  }
 
   const player = currentList.splice(playerIndex, 1)[0]; // 기존 팀에서 제거
 
-  // 새 팀 리스트 설정
-  const newTeamKey = newTeam === "A팀" ? "teamA" : newTeam === "B팀" ? "teamB" : "teamC";
-  const newList = window.matchTeamAssignments[newTeamKey];
-
-  // 순위 기준 삽입 위치 계산
-  let insertIndex = newList.findIndex(p => {
-    const r = attendance.find(a => a.name === p.name);
-    return r && r.rank > rank;
-  });
-  if (insertIndex === -1) insertIndex = newList.length;
-
-  newList.splice(insertIndex, 0, player); // 새 팀에 삽입
-
-  // ✅ confirmedSelections 및 finalTeamResults 갱신
-  const originalPosition = player.position || "지각";
-  confirmedSelections[name] = `${newTeam} ${originalPosition}`;
-
-  if (!window.finalTeamResults) window.finalTeamResults = {};
+  // 새로운 팀에 추가 (순번 유지)
   if (!finalTeamResults[newTeam]) finalTeamResults[newTeam] = [];
 
-  // 기존 팀 결과에서 제거
-  Object.keys(finalTeamResults).forEach(t => {
-    finalTeamResults[t] = finalTeamResults[t].filter(p => p.name !== name);
-  });
+  // insertIndex 결정: 동일한 포지션 중 마지막 위치 다음
+  const targetList = finalTeamResults[newTeam];
+  const samePositionIndex = targetList.map(p => p.position).lastIndexOf(player.position);
+  const insertIndex = samePositionIndex >= 0 ? samePositionIndex + 1 : targetList.length;
 
-  // 새 팀에 추가
-  finalTeamResults[newTeam].push({ name, position: originalPosition });
+  targetList.splice(insertIndex, 0, player);
 
   localStorage.setItem("finalTeamResults", JSON.stringify(finalTeamResults));
-
-  // 결과 재렌더링
   displayFinalTeamResults();
+
+  console.log("✅ 이동 완료:", name, "👉", newTeam);
 }
 
 
