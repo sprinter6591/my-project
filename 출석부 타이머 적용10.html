@@ -528,6 +528,7 @@
 
   <!-- JS 코드 -->
   <script>
+    let lastSelection = null;
    function confirmAndClearAttendance() {
     if (confirm("정말로 출석부를 삭제하시겠습니까?")) {
       clearCurrentAttendanceInputs(); // 원래 있던 삭제 함수 실행
@@ -1272,7 +1273,22 @@ function suggestFormation(team) {
 let formationA = null;
 let formationB = null;
 
+function prepareMatchPlayers() {
+  // savedAttendanceData를 matchPlayers로 변환
+  if (!Array.isArray(savedAttendanceData) || savedAttendanceData.length === 0) {
+    alert("출석 인원이 없습니다. 출석부를 먼저 적용해주세요.");
+    return false;
+  }
+
+  window.matchPlayers = savedAttendanceData.filter(p => !p.leave && !p.late); 
+  return true;
+}
+
+
 function drawMatchPositions() {
+  console.log("🎯 drawMatchPositions 호출됨");
+  console.log("✅ matchPlayers:", matchPlayers);
+
   if (!matchPlayers || matchPlayers.length === 0) {
     alert("출석부를 먼저 적용해주세요.");
     return;
@@ -1388,21 +1404,37 @@ if (teamC.length > 0) {
     [shuffledNotes[i], shuffledNotes[j]] = [shuffledNotes[j], shuffledNotes[i]];
   }
 
-  setupVotingOrder();
+document.getElementById("seasonStart").parentElement.style.display = "none";
+document.getElementById("rewardSettingArea").style.display = "none";
+document.getElementById("top10Display").style.display = "none";
+document.getElementById("allScoresArea").style.display = "none";
+document.getElementById("attendanceHistoryArea").style.display = "none";
+
+// 모달 띄우기 전에 추가해야 함
+setupVotingOrder();
+
+// 1️⃣ 먼저 모달을 보여준다
+const overlay = document.getElementById("drawModalOverlay");
+overlay.style.display = "flex";
+overlay.style.justifyContent = "center";
+overlay.style.alignItems = "center";
+
+// 2️⃣ 그리고 약간 지연시켜서 (setTimeout)
+setTimeout(() => {
+  console.log("🧩 setTimeout 안 들어왔다!");
+  showVotingInfo();
   renderEnvelopes();
+  updateLiveResultTable();
+}, 100);
 
-  document.getElementById("seasonStart").parentElement.style.display = "none";
-  document.getElementById("rewardSettingArea").style.display = "none";
-  document.getElementById("top10Display").style.display = "none";
-  document.getElementById("allScoresArea").style.display = "none";
-  document.getElementById("attendanceHistoryArea").style.display = "none";
-  document.getElementById("drawModalOverlay").style.display = "flex";
+}
 
-  console.log("쪽지 목록 확인:", shuffledNotes);
-  console.log("A팀 포지션:", 1 + dfA + mfA + fwA, "휴식:", teamA.length - (1 + dfA + mfA + fwA));
-console.log("B팀 포지션:", 1 + dfB + mfB + fwB, "휴식:", teamB.length - (1 + dfB + mfB + fwB));
-console.log("총 생성된 쪽지 수:", notes.length);
-console.log("A팀 인원:", teamA.length, "B팀 인원:", teamB.length, "C팀 인원:", teamC.length);
+function onDrawButtonClick() {
+  if (prepareMatchPlayers()) {
+    drawMatchPositions();
+  }
+  window.voteOrder = voteOrder;
+
 }
 
 
@@ -1712,24 +1744,44 @@ let confirmedIndexes = [];  // ✅ 확정된 쪽지 인덱스를 저장
 
 
 function renderEnvelopes() {
-  showVotingInfo();
+  console.log("🧩 renderEnvelopes() 함수 진입");
 
+  if (!Array.isArray(voteOrder) || voteOrder.length === 0) {
+    console.error("❌ voteOrder가 비어 있습니다. drawMatchPositions() 호출을 먼저 확인하세요.");
+    return;
+  }
+
+  if (!voteOrder || !voteOrder[currentPlayerIndex]) {
+    console.error("❌ voteOrder가 비어있거나 currentPlayerIndex가 범위를 벗어났습니다.");
+    return;
+  }
+
+  const playerName = voteOrder[currentPlayerIndex].name;
   const container = document.getElementById("envelopeArea");
   container.innerHTML = "";
-
-  const playerName = voteOrder[currentPlayerIndex]?.name;
 
   shuffledNotes.forEach((note, index) => {
     const box = document.createElement("div");
     box.id = `envelope-${index}`;
-    box.className = "envelope-box envelope";  // ✅ 여기에 class 추가
+    box.className = "envelope-box envelope";
 
-    // 🔁 이 부분 수정!
-    const isConfirmed = confirmedIndexes.includes(index);
-    const isOpened = openedEnvelopes.some(e => e.index === index);
+    const isConfirmed = Object.values(confirmedSelections).includes(note); // 이미 선택된 쪽지
+    const isOpened = openedEnvelopes.some(e => e.index === index); // 열린 쪽지
 
-    box.textContent = isConfirmed ? "✅" : isOpened ? "💌" : "✉️";
-    box.style.cursor = isConfirmed ? "not-allowed" : "pointer";
+    // ✅ 표시 결정
+    if (isConfirmed) {
+      box.textContent = "✅";
+      box.style.cursor = "not-allowed"; // 클릭 금지
+      box.style.opacity = "0.6";
+    } else if (isOpened) {
+      box.textContent = "💌";
+      box.style.cursor = "pointer";
+    } else {
+      box.textContent = "✉️";
+      box.style.cursor = "pointer";
+    }
+
+    // 📦 기본 스타일
     box.style.userSelect = "none";
     box.style.width = "48px";
     box.style.height = "48px";
@@ -1742,11 +1794,12 @@ function renderEnvelopes() {
     box.style.backgroundColor = "#ffffff";
     box.style.margin = "4px";
 
-    if (isOpened || isConfirmed) {
-      if (note.startsWith("A팀")) box.style.backgroundColor = "#fff9c4";
-      else if (note.startsWith("B팀")) box.style.backgroundColor = "#ffe0b2";
-      else if (note.startsWith("C팀")) box.style.backgroundColor = "#bbdefb";
-      else if (note.startsWith("A팀 휴식") || note.startsWith("B팀 휴식")) box.style.backgroundColor = "#eee";
+    // 📦 열린 쪽지 스타일 강조
+    if (isOpened && !isConfirmed) {
+      if (note.startsWith("A팀")) box.style.backgroundColor = "#fff9c4"; // 연노랑
+      else if (note.startsWith("B팀")) box.style.backgroundColor = "#ffe0b2"; // 연주황
+      else if (note.startsWith("C팀")) box.style.backgroundColor = "#bbdefb"; // 연파랑
+      else if (note.includes("휴식")) box.style.backgroundColor = "#eee";
 
       if (note.includes("FW")) {
         box.style.color = "#e53935";
@@ -1758,21 +1811,25 @@ function renderEnvelopes() {
         box.style.color = "#1565c0";
         box.style.fontWeight = "bold";
       } else if (note.includes("GK")) {
-        box.style.color = "#000";
+        box.style.color = "#000000";
         box.style.fontWeight = "bold";
       }
     }
 
+    // 📦 클릭 이벤트 설정 (확정된 쪽지는 클릭 불가)
     if (!isConfirmed) {
       box.onclick = () => handleEnvelopeClick(index);
-    } else {
-      box.style.pointerEvents = "none";
-      box.style.opacity = "0.6";
     }
 
     container.appendChild(box);
   });
+
+  showVotingInfo();
 }
+
+
+
+
 
 
 
@@ -1781,16 +1838,32 @@ function renderEnvelopes() {
 
 function handleEnvelopeClick(index) {
   const box = document.getElementById(`envelope-${index}`);
-  if (confirmedSelections[index]) return;
+  const playerName = voteOrder[currentPlayerIndex]?.name;
+  
+  if (!playerName) return;
+
+  // 이미 확정 선택한 경우 막기
+  if (confirmedSelections[playerName]) return;
 
   const voteLimit = playerVoteCount[currentPlayerIndex] || 1;
-  if (openedEnvelopes.length >= voteLimit) return;
-  if (openedEnvelopes.some(e => e.index === index)) return;
 
-  // 시각적 변경 추가
+  const openedIndex = openedEnvelopes.findIndex(e => e.index === index);
+
+  if (openedIndex !== -1) {
+    // 이미 열었던 쪽지를 다시 클릭 => 닫기
+    openedEnvelopes.splice(openedIndex, 1);
+    box.textContent = "✉️";
+    box.style.cursor = "pointer";
+    box.classList.remove("selected");
+    return;
+  }
+
+  if (openedEnvelopes.length >= voteLimit) return;
+
+  // 새로 열기
   box.textContent = "💌";
   box.style.cursor = "default";
-  box.classList.add("selected");  // 추가된 부분
+  box.classList.add("selected");
 
   openedEnvelopes.push({ index, value: shuffledNotes[index] });
 
@@ -1800,6 +1873,7 @@ function handleEnvelopeClick(index) {
     }, 100);
   }
 }
+
 
 
 function downloadMemberList() {
@@ -2164,13 +2238,13 @@ function showSelectionModal() {
   const modal = document.getElementById("selectionModal");
   const optionsDiv = document.getElementById("modalOptions");
   const closeBtn = document.getElementById("modalCloseBtn");
+
   if (closeBtn) closeBtn.style.display = "none";
   optionsDiv.innerHTML = "";
 
   let hasValidButton = false;
 
-  // ✅ index 추가!
-  openedEnvelopes.forEach((item, index) => {
+  openedEnvelopes.forEach((item) => {
     if (!item || typeof item.index !== "number" || typeof item.value === "undefined") {
       console.warn("⚠️ openedEnvelopes 항목 오류:", item);
       return;
@@ -2178,19 +2252,9 @@ function showSelectionModal() {
 
     const btn = document.createElement("button");
     btn.textContent = item.value;
-    btn.style.padding = "0.8rem 1.2rem";
-    btn.style.fontSize = "1.2rem";
-    btn.style.cursor = "pointer";
-    btn.style.border = "1px solid #ccc";
-    btn.style.borderRadius = "8px";
-    btn.style.margin = "0.4rem";
+    applyButtonStyle(btn, item.value); // 🎯 스타일 함수 따로!
 
-    // 팀별 배경색
-    if (item.value.startsWith("A팀")) btn.style.backgroundColor = "#fff9c4";
-    else if (item.value.startsWith("B팀")) btn.style.backgroundColor = "#ffe0b2";
-    else if (item.value.startsWith("C팀")) btn.style.backgroundColor = "#bbdefb";
-
-    btn.onclick = () => confirmSelection(index);  // ✅ 수정된 부분
+    btn.onclick = () => confirmSelection(item.index);  // ✅ 주의: index 아니라 실제 item.index!
     optionsDiv.appendChild(btn);
     hasValidButton = true;
   });
@@ -2202,89 +2266,112 @@ function showSelectionModal() {
   modal.style.display = "flex";
 }
 
+// 🎯 버튼 스타일 적용 함수
+function applyButtonStyle(button, value) {
+  button.style.padding = "0.8rem 1.2rem";
+  button.style.fontSize = "1.2rem";
+  button.style.cursor = "pointer";
+  button.style.border = "1px solid #ccc";
+  button.style.borderRadius = "8px";
+  button.style.margin = "0.4rem";
+
+  if (value.startsWith("A팀")) button.style.backgroundColor = "#fff9c4";
+  else if (value.startsWith("B팀")) button.style.backgroundColor = "#ffe0b2";
+  else if (value.startsWith("C팀")) button.style.backgroundColor = "#bbdefb";
+}
+
+
 
 function confirmSelection(selectedIndex) {
-  const selected = openedEnvelopes[selectedIndex];
+  const selectedNote = openedEnvelopes.find(e => e.index === selectedIndex);
   const player = voteOrder[currentPlayerIndex];
 
-  if (!selected || typeof selected.value === "undefined" || typeof selected.index === "undefined") {
-    console.error("❌ 선택한 쪽지의 값 또는 인덱스가 없습니다:", selected);
-    alert("쪽지에 오류가 있어 저장할 수 없습니다.");
+  if (!selectedNote) {
+    console.error("❌ 선택한 쪽지를 찾을 수 없습니다:", selectedIndex);
+    alert("쪽지 오류 발생");
     return;
   }
 
-  if (!player || !player.name) {
-    console.error("❌ 현재 플레이어 정보가 없습니다:", player);
-    alert("선택한 사람의 정보가 없어 저장할 수 없습니다.");
-    return;
-  }
+  confirmedSelections[player.name] = selectedNote.value;
+  console.log(`✅ 확정된 선택: ${player.name} → ${selectedNote.value}`);
 
-  const playerName = player.name;
-
+  // ✅ [여기 추가] 최근 선택 기록 저장 (되돌리기용)
   lastSelection = {
-    playerName,
-    selectedIndex,
-    envelopeIndex: selected.index,
-    value: selected.value,
-    envelopesSnapshot: [...openedEnvelopes]
+    playerName: player.name,             // 누가 선택했는지
+    playerIndex: currentPlayerIndex,      // 몇 번째 사람이었는지
+    envelopeIndex: selectedIndex,         // 선택한 쪽지 index
+    envelopesSnapshot: [...openedEnvelopes], // 열었던 쪽지 목록
+    value: selectedNote.value             // 선택한 쪽지 내용
   };
 
-  confirmedSelections[playerName] = selected.value;
-  confirmedIndexes.push(selected.index);
-
-  const confirmedBox = document.getElementById(`envelope-${selected.index}`);
-  if (confirmedBox) {
-    confirmedBox.textContent = "✅";
-    confirmedBox.style.pointerEvents = "none";
-    confirmedBox.style.opacity = "0.6";
+  const selectionModal = document.getElementById("selectionModal");
+  if (selectionModal) {
+    selectionModal.style.display = "none";
   }
+
+  // 🔥 (1) openedEnvelopes 비우기 (다음 사람 준비)
+  openedEnvelopes = [];
+
+  // 🔥 (2) shuffledNotes는 그대로, renderEnvelopes() 때 남은 쪽지를 랜덤하게 새로 섞기
+  reshuffleRemainingEnvelopes();
 
   updateLiveResultTable();
 
-  openedEnvelopes.forEach((item) => {
-    if (item.index !== selected.index && typeof item.index !== "undefined") {
-      const box = document.getElementById(`envelope-${item.index}`);
-      if (box) {
-        box.textContent = "✉️";
-        box.style.pointerEvents = "auto";
-        box.style.opacity = "1";
-      }
+  currentPlayerIndex++;
+
+  if (currentPlayerIndex < voteOrder.length) {
+    setTimeout(() => {
+      showVotingInfo();
+      renderEnvelopes();
+    }, 300);
+  } else {
+    console.log("✅ 모든 쪽지 선택 완료");
+    updateLiveResultTable();
+      // ✅ 팀구분 탭에 결과 자동 출력
+      displayFinalTeamResults(); 
+
+// ✅ (선택사항) 탭 전환: 자동으로 "팀구분" 탭으로 이동하고 싶다면 추가
+moveToTeamTab();
+  }
+}
+
+function moveToTeamTab() {
+  showTab("teamTab");  // 팀탭으로 이동
+
+  // 팀 결과를 그리기
+  displayFinalTeamResults();  // A/B/C 팀 결과를 테이블로 보여주기
+  
+  window.scrollTo(0, 0);  // 페이지 맨 위로 스크롤
+}
+
+
+function reshuffleRemainingEnvelopes() {
+  // 1. 확정된 쪽지 빼고
+  const confirmedValues = Object.values(confirmedSelections);
+  const remainingNotes = shuffledNotes.filter(note => !confirmedValues.includes(note));
+
+  // 2. 남은 쪽지 실제로 셔플
+  for (let i = remainingNotes.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [remainingNotes[i], remainingNotes[j]] = [remainingNotes[j], remainingNotes[i]];
+  }
+
+  // 3. 확정된 쪽지 + 새로 섞은 쪽지 합쳐서 다시 shuffledNotes 만든다
+  const finalNotes = [];
+  let remainingIdx = 0;
+
+  shuffledNotes.forEach(note => {
+    if (confirmedValues.includes(note)) {
+      finalNotes.push(note); // 확정된 쪽지는 고정
+    } else {
+      finalNotes.push(remainingNotes[remainingIdx++]); // 남은 쪽지는 새로 섞은 순서대로
     }
   });
 
-  // ✅ 모든 뽑기 완료 시 다음 동작 자동 실행
-  if (currentPlayerIndex === voteOrder.length - 1) {
-    setTimeout(() => {
-      // 1. 결과 저장
-      const savedResults = { A: [], B: [], C: [] };
-      Object.entries(confirmedSelections).forEach(([name, pos]) => {
-        const team = pos.startsWith("A팀") ? "A" : pos.startsWith("B팀") ? "B" : "C";
-        const position = pos.replace(/^(A팀|B팀|C팀) /, "");
-        savedResults[team].push({ name, position });
-      });
-      localStorage.setItem("savedDrawResult", JSON.stringify(savedResults));
-      localStorage.setItem("finalTeamResults", JSON.stringify(savedResults));
-
-      // 2. 팀구분 탭에 테이블 렌더링
-      renderTeamDivisionResult();
-
-      // 3. 탭 전환 및 스크롤 이동
-      showTab("teamTab");
-      window.scrollTo(0, 0);
-    }, 300);
-  }
-
-  currentPlayerIndex++;
-
-  // ✅ 모달 닫기
-  const modal = document.getElementById("selectionModal");
-  if (modal) modal.style.display = "none";
-
-  // ✅ 다음 사람의 뽑기 시작
-  if (currentPlayerIndex < voteOrder.length) {
-    drawMatchPositions();
-  }
+  shuffledNotes = finalNotes;
 }
+
+
 
 
 
@@ -2391,28 +2478,29 @@ function displayFinalTeamResults() {
   const teamResultDiv = document.getElementById("teamDivisionResult");
   if (teamResultDiv) teamResultDiv.innerHTML = "";
 
-  const teamStyles = { A: "#fff9c4", B: "#ffe0b2", C: "#bbdefb" };
-  const teamData = { A: [], B: [], C: [] };
+  const teamStyles = { A: "#fff9c4", B: "#ffe0b2", C: "#bbdefb" };  // 팀 색상
+  const teamData = { A: [], B: [], C: [] };  // 각 팀 데이터 저장
 
   // 동명이인 체크용
   const nameCount = {};
-  memberList.forEach(m => {
+  window.memberList.forEach(m => {
     nameCount[m.name] = (nameCount[m.name] || 0) + 1;
   });
   const duplicateNames = Object.entries(nameCount)
     .filter(([_, count]) => count > 1)
     .map(([name]) => name);
+
   const getDisplayName = (name) => {
     const isDup = duplicateNames.includes(name);
-    const member = memberList.find(m => m.name === name);
+    const member = window.memberList.find(m => m.name === name);
     return isDup && member?.team ? `${name} (${member.team})` : name;
   };
 
   // 출석 정렬
-  const dateKey = Object.keys(attendanceHistoryData || {}).sort().pop();
-  const attendanceData = attendanceHistoryData?.[dateKey] || [];
+  const dateKey = Object.keys(window.attendanceHistoryData || {}).sort().pop();
+  const attendanceData = window.attendanceHistoryData?.[dateKey] || [];
 
-  const sortedNames = Object.entries(confirmedSelections).sort(([a], [b]) => {
+  const sortedNames = Object.entries(window.confirmedSelections).sort(([a], [b]) => {
     const rankA = attendanceData.find(p => p.name === a)?.rank ?? 999;
     const rankB = attendanceData.find(p => p.name === b)?.rank ?? 999;
     return rankA - rankB;
@@ -2423,7 +2511,7 @@ function displayFinalTeamResults() {
                     pos.startsWith("B팀") ? "B" : "C";
     teamData[teamKey].push({
       name,
-      position: pos.replace(/^[ABC]팀 /, "")
+      position: pos.replace(/^[ABC]팀 /, "")  // 팀명 제거
     });
   });
 
@@ -2457,18 +2545,42 @@ function displayFinalTeamResults() {
       </div>`;
   }
 
-  document.getElementById("teamDivisionResult").innerHTML = html;
+  document.getElementById("teamDivisionResult").innerHTML = html;  // 팀 결과 화면에 출력
 
   const resultModal = document.getElementById("resultModalOverlay");
-  if (resultModal) resultModal.style.display = "none";
+  if (resultModal) resultModal.style.display = "none";  // 결과 모달 닫기
   const drawModal = document.getElementById("drawModalOverlay");
-  if (drawModal) drawModal.style.display = "none";
+  if (drawModal) drawModal.style.display = "none";  // 추첨 모달 닫기
 
-  showTab("teamTab");
-  window.scrollTo(0, 0);
-  localStorage.setItem("finalTeamResults", JSON.stringify(teamData));
+  showTab("teamTab");  // 팀탭으로 이동
+  window.scrollTo(0, 0);  // 페이지 맨 위로 스크롤
+
+  localStorage.setItem("finalTeamResults", JSON.stringify(teamData));  // 로컬스토리지에 결과 저장
 }
 
+
+
+function finalizeSelections() {
+  if (!window.confirmedSelections || Object.keys(confirmedSelections).length === 0) {
+    alert("확정된 선수가 없습니다.");
+    return;
+  }
+
+  // 1. 최종 결과를 localStorage에 저장
+  localStorage.setItem("confirmedSelections", JSON.stringify(confirmedSelections));
+
+  // 2. 팀 결과 테이블 생성 및 표시
+  displayFinalTeamResults();
+
+  // 3. 탭 이동 (팀 구분 탭으로)
+  showTab("teamTab");
+
+  // 4. 최상단으로 스크롤
+  window.scrollTo(0, 0);
+
+  // 5. 완료 알림
+  alert("✅ 최종 뽑기가 완료되었습니다!");
+}
 
 
 
@@ -2519,34 +2631,58 @@ function closeSelectionModal() {
 let voteOrder = [];
 
 function showVotingInfo() {
-  if (!voteOrder[currentPlayerIndex]) return;
+  console.log("🧩 showVotingInfo() 함수 진입");
+  console.log("🎯 currentPlayerIndex:", currentPlayerIndex);
+console.log("🎯 voteOrder:", voteOrder);
+console.log("🎯 voteOrder[currentPlayerIndex]:", voteOrder[currentPlayerIndex]);
+
+
+  if (!voteOrder[currentPlayerIndex]) {
+    console.error("❌ voteOrder[currentPlayerIndex]가 없음!");
+    return;
+  }
 
   const player = voteOrder[currentPlayerIndex];
   const votes = playerVoteCount[currentPlayerIndex];
 
-  document.getElementById("drawRankCell").textContent = `${currentPlayerIndex + 1}등`;
-  document.getElementById("drawNameCell").textContent = player?.name || "-";
-  document.getElementById("drawVoteCell").textContent = `${votes}장`;
+  const rankCell = document.getElementById("drawRankCell");
+  const nameCell = document.getElementById("drawNameCell");
+  const voteCell = document.getElementById("drawVoteCell");
+
+  if (!rankCell || !nameCell || !voteCell) {
+    console.error("❌ drawRankCell / drawNameCell / drawVoteCell 중 하나가 없습니다.");
+    return;
+  }
+
+  rankCell.textContent = `${currentPlayerIndex + 1}등`;
+  nameCell.textContent = player?.name || "-";
+  voteCell.textContent = `${votes}장`;
 }
+
+
+
 
 function setupVotingOrder() {
   if (!Array.isArray(matchPlayers) || matchPlayers.length === 0) {
     console.warn("⚠️ matchPlayers가 비어있습니다.");
     return;
   }
-
-  voteOrder = [...matchPlayers];
-  const total = voteOrder.length;
-  const half = Math.ceil(total / 2);
-
+  voteOrder = matchPlayers.filter(p => !p.leave);
   playerVoteCount = voteOrder.map((_, idx) => {
     if (idx <= 1) return 3;
-    if (idx < half) return 2;
+    if (idx < Math.ceil(voteOrder.length / 2)) return 2;
     return 1;
   });
 
-  currentPlayerIndex = 0;
+  console.log("💬 setupVotingOrder 호출됨, matchPlayers:", matchPlayers);
+console.log("💬 setupVotingOrder 완료, voteOrder:", voteOrder);
+
 }
+
+
+
+
+
 
 
 function drawScoreChart(data) {
@@ -2862,44 +2998,61 @@ function redoSelection() {
     return;
   }
 
-  const { playerName, envelopeIndex, envelopesSnapshot, value } = lastSelection;
+  const { playerName, envelopeIndex, envelopesSnapshot, value, playerIndex } = lastSelection;
 
-  // 선택 취소
+  // ✅ 1. 선택 취소: confirmedSelections에서 삭제
   delete confirmedSelections[playerName];
+
+  // ✅ 2. confirmedIndexes 관리 (만약 사용하고 있다면)
   const idx = confirmedIndexes.indexOf(envelopeIndex);
   if (idx !== -1) confirmedIndexes.splice(idx, 1);
 
-  // 인덱스 복원 (🧠 순서 오류 방지)
-  currentPlayerIndex--;
+  // ✅ 3. currentPlayerIndex를 lastSelection의 playerIndex로 되돌림
+  currentPlayerIndex = playerIndex;
 
-  // 쪽지 UI 복원
-  const box = document.getElementById(`envelope-${envelopeIndex}`);
-  if (box) {
-    box.textContent = "✉️";
-    box.style.pointerEvents = "auto";
-    box.style.opacity = "1.0";
-    box.style.backgroundColor = "";  // 기본 배경으로 초기화
-    box.style.border = "";  // 테두리 초기화
-  }
+  // ✅ 4. 팀결과표에서도 삭제
+  removeFromLiveResult(playerName);
 
-  // 실시간 결과 테이블 갱신
-  updateLiveResultTable();
-
-  // ✅ 쪽지 내용도 복원 (☑️ 핵심 포인트!)
+  // ✅ 5. 쪽지 내용 복구
   shuffledNotes[envelopeIndex] = value;
 
-  // 쪽지 상태 복원
+  // ✅ 6. openedEnvelopes 복구
   openedEnvelopes = [...envelopesSnapshot];
 
-  // 모달 다시 표시
+  // ✅ 7. 전체 다시 그리기
+  renderEnvelopes();
+
+  // ✅ 8. 다시 선택 모달 띄움
   showSelectionModal();
 
-  // 선택 기록 초기화
+  // ✅ 9. Live 결과 테이블 갱신
+  updateLiveResultTable();
+
+  // ✅ 10. lastSelection 초기화
   lastSelection = null;
 
-  // 현재 뽑기 순서 갱신
+  // ✅ 11. 현재 뽑기 순서 표시
   showVotingInfo();
 }
+
+
+
+function removeFromLiveResult(playerName) {
+  const tables = ['liveResultTableA', 'liveResultTableB', 'liveResultTableC'];
+  
+  tables.forEach(tableId => {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    const rows = table.querySelectorAll('tr');
+    rows.forEach(row => {
+      const cells = row.querySelectorAll('td');
+      if (cells.length > 0 && cells[0].textContent.trim() === playerName) {
+        row.remove(); // 이름이 일치하는 행 삭제
+      }
+    });
+  });
+}
+
 
 
 function confirmReset() {
@@ -3352,10 +3505,11 @@ teamSelect.style.lineHeight = "2rem";
   closeBtn.onclick = () => formArea.innerHTML = "";
 
   // ✅ 렌더링
-  formArea.appendChild(nameSelect);
-  formArea.appendChild(teamSelect);
-  formArea.appendChild(confirmButton);
-  formArea.appendChild(closeBtn);
+  container.appendChild(nameSelect);
+container.appendChild(teamSelect);
+container.appendChild(confirmButton);
+container.appendChild(closeBtn);
+
 }
 
 function getTeamColorClass(team) {
