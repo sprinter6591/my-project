@@ -185,7 +185,7 @@
   flex-wrap: wrap;
   justify-content: center;
   gap: 4px;
-  margin-top: 0.3rem;
+  margin-top: 0.2rem;
 }
 #liveResultTable {
   display: flex;
@@ -294,10 +294,20 @@
 
 </div>
 
-  <div id="matchSetup2" class="tab">
-    <h2>경기 편성 2-4경기</h2>
-    <p>여기에 2~4경기 관련 포지션 뽑기 기록, 자동 팀 재배치 등의 기능이 들어갈 수 있어요.</p>
+  <!-- 경기 편성 2-4경기 탭 -->
+<div id="matchSetup2" class="tab">
+    <h2 style="text-align: center; margin-bottom: 1.5rem;">경기 편성 2-4경기</h2>
+  
+    <div style="display: flex; flex-direction: column; gap: 1rem; align-items: center;">
+      <button onclick="startTeamDraw('A')" style="width: 90%; padding: 1.5rem; font-size: 1.4rem;">A팀 뽑기</button>
+      <button onclick="startTeamDraw('B')" style="width: 90%; padding: 1.5rem; font-size: 1.4rem;">B팀 뽑기</button>
+      <button onclick="startTeamDraw('C')" style="width: 90%; padding: 1.5rem; font-size: 1.4rem;">C팀 뽑기</button>
+    </div>
+  
+    <!-- 뽑기 인터페이스 표시 영역 -->
+    <div id="multiDrawArea" style="margin-top: 2rem;"></div>
   </div>
+  
 
   <div id="attendanceList" style="margin-top: 1rem;"></div>
   <div style="text-align: center; margin-top: 1rem;">
@@ -326,59 +336,78 @@
   </div>
 
   <!-- A팀 구역 -->
-  <div style="background-color: #fff9c4; padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
+<div style="background-color: #fff9c4; padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
+
     <div id="matchAInfo" style="font-weight: bold; font-size: 1.4rem;">
-      A팀 출석 인원: <span id="matchACount">0</span>명 &nbsp;&nbsp;휴식: <span id="restACount">0</span>명
+        A팀 출석 인원: <span id="matchACount">0</span>명
+<span style="margin-left: 1rem; font-weight: bold;"> | </span>
+<span style="margin-left: 1rem;">휴식: <span id="restACount">0</span>명</span>
+        
     </div>
-    <div style="display: flex; align-items: center; gap: 10px;">
+  
+    <div style="margin-top: 1rem; display: flex; align-items: center; gap: 10px;">
+
       <label style="font-weight: bold;">A팀 선발 인원:</label>
       <button onclick="adjustStarter('A', 1)" style="font-size: 1rem; padding: 0.3rem 0.5rem;">▲</button>
-      <input type="number" id="matchAStarter" value="11" min="1" style="width: 60px; text-align: center;" readonly>
+      <input type="number" id="matchAStarter" value="11" min="1"
+  style="width: 40px; padding: 2px; font-size: 1.3rem; text-align: center;" readonly>
       <button onclick="adjustStarter('A', -1)" style="font-size: 1rem; padding: 0.3rem 0.5rem;">▼</button>
     </div>
-  </div>
-
-  <div style="margin-top: 0.7rem;">
-    <label><strong>포메이션 추천:</strong> <span id="suggestA" style="font-size: 1rem;"></span></label><br>
-    <label><strong>A팀 포메이션:</strong></label>
-    <select id="formationASelect" onchange="toggleCustomFormation('A')">
-      <option value="">-- 추천 선택 --</option>
-    </select>
-    <div id="formationACustom" style="display: none; margin-top: 0.5rem;">
-      DF: <input type="number" id="dfA" value="0" min="0" style="width: 30px;" />
-      MF: <input type="number" id="mfA" value="0" min="0" style="width: 30px;" />
-      FW: <input type="number" id="fwA" value="0" min="0" style="width: 30px;" />
+  
+    <!-- ✅ 이 블럭을 안으로 넣음 -->
+    <div style="margin-top: 0.7rem;">
+      <label style="display: none;"><strong>포메이션 추천:</strong> <span id="suggestA" style="font-size: 1rem;"></span></label>
+      <label><strong>A팀 포메이션:</strong></label>
+      <select id="formationASelect" onchange="toggleCustomFormation('A')">
+        <option value="">-- 추천 선택 --</option>
+      </select>
+      <div id="formationACustom" style="display: none; margin-top: 0.5rem;">
+        DF: <input type="number" id="dfA" value="0" min="0" max="9" style="width: 28px; padding: 0; text-align: center;" />
+        MF: <input type="number" id="mfA" value="0" min="0" max="9" style="width: 28px; padding: 0; text-align: center;" />
+        FW: <input type="number" id="fwA" value="0" min="0" max="9" style="width: 28px; padding: 0; text-align: center;" />
+      </div>
+      <div id="remainingA" style="margin-top: 0.5rem; font-weight: bold;"></div>
     </div>
-    <div id="remainingA" style="margin-top: 0.5rem; font-weight: bold;"></div>
-  </div>
-
+  
+  </div> <!-- ✅ A팀 상자 닫기 -->
+  
   <!-- B팀 구역 -->
-  <div style="background-color: #e0f7da; padding: 1rem; border-radius: 10px;">
+<div style="background-color: #e0f7da; padding: 1rem; border-radius: 10px;">
     <div id="matchBInfo" style="font-weight: bold; font-size: 1.4rem;">
-      B팀 출석 인원: <span id="matchBCount">0</span>명 &nbsp;&nbsp;휴식: <span id="restBCount">0</span>명
+        B팀 출석 인원: <span id="matchBCount">0</span>명
+<span style="margin-left: 1rem; font-weight: bold;"> | </span>
+<span style="margin-left: 1rem;">휴식: <span id="restBCount">0</span>명</span>
+
+        
     </div>
-    <div style="display: flex; align-items: center; gap: 10px;">
+  
+    <div style="margin-top: 1rem; display: flex; align-items: center; gap: 10px;">
+
       <label style="font-weight: bold;">B팀 선발 인원:</label>
       <button onclick="adjustStarter('B', 1)" style="font-size: 1rem; padding: 0.3rem 0.5rem;">▲</button>
-      <input type="number" id="matchBStarter" value="11" min="1" style="width: 60px; text-align: center;" readonly>
+      <input type="number" id="matchBStarter" value="11" min="1" style="width: 40px; padding: 2px; font-size: 1.3rem; text-align: center;" readonly>
       <button onclick="adjustStarter('B', -1)" style="font-size: 1rem; padding: 0.3rem 0.5rem;">▼</button>
     </div>
-  </div>
-
-  <div style="margin-top: 0.7rem;">
-    <label><strong>포메이션 추천:</strong> <span id="suggestB" style="font-size: 1rem;"></span></label><br>
-    <label style="display: inline-block; margin-top: 1rem;"><strong>B팀 포메이션:</strong></label>
-    <select id="formationBSelect" onchange="toggleCustomFormation('B')" style="margin-left: 10px;">
-      <option value="">-- 추천 선택 --</option>
-    </select>
-    <div id="formationBCustom" style="display: none; margin-top: 0.5rem;">
-      DF: <input type="number" id="dfB" value="0" min="0" style="width: 30px;" />
-      MF: <input type="number" id="mfB" value="0" min="0" style="width: 30px;" />
-      FW: <input type="number" id="fwB" value="0" min="0" style="width: 30px;" />
+  
+    <!-- ✅ 포메이션 설정 블럭 삽입 -->
+    <div style="margin-top: 0.7rem;">
+      <label style="display: none;"><strong>포메이션 추천:</strong> <span id="suggestB" style="font-size: 1rem;"></span></label>
+      <label style="display: inline-block; margin-top: 1rem;"><strong>B팀 포메이션:</strong></label>
+      <select id="formationBSelect" onchange="toggleCustomFormation('B')" style="margin-left: 10px;">
+        <option value="">-- 추천 선택 --</option>
+      </select>
+  
+      <div id="formationBCustom" style="display: none; margin-top: 0.5rem;">
+        DF: <input type="number" id="dfB" value="0" min="0" max="9" style="width: 28px; padding: 0; text-align: center;" />
+        MF: <input type="number" id="mfB" value="0" min="0" max="9" style="width: 28px; padding: 0; text-align: center;" />
+        FW: <input type="number" id="fwB" value="0" min="0" max="9" style="width: 28px; padding: 0; text-align: center;" />
+      </div>
+  
+      <div id="remainingB" style="margin-top: 0.5rem; font-weight: bold;"></div>
     </div>
-    <div id="remainingB" style="margin-top: 0.5rem; font-weight: bold;"></div>
-  </div>
-
+  
+  </div> <!-- ✅ B팀 상자 닫힘 -->
+  
   <!-- 포지션 뽑기 -->
   <div style="margin: 2rem 0; text-align: center;">
     <button onclick="drawMatchPositions()" style="
@@ -589,8 +618,11 @@ function adjustStarter(team, delta) {
   value += delta;
   if (value < 1) value = 1;
   input.value = value;
-  suggestFormation(team);
+
+  suggestFormation(team);       // 포메이션 추천은 유지
+  updateMatchCounts();          // ✅ 휴식 인원 등 실시간 갱신 추가
 }
+
 function toggleCustomFormation(team) {
   const select = document.getElementById(`formation${team}Select`);
   const customDiv = document.getElementById(`formation${team}Custom`);
@@ -1781,25 +1813,38 @@ function renderEnvelopes() {
       box.textContent = "✅";
       box.style.cursor = "not-allowed";
       box.style.opacity = "0.6";
+      box.style.border = "1px solid #ddd";            // 연한 테두리
+  box.style.backgroundColor = "#f0f0f0";          // 확정된 쪽지는 연회색
     } else if (isOpened) {
       box.textContent = "💌";
       box.style.cursor = "pointer";
+  box.style.border = "1px solid #ddd";            // 연한 테두리
+  box.style.backgroundColor = "#fff9c4";          // 💌 → 연노랑 배경
+  box.style.color = "#e09100";                    // 이모지 색 노란 느낌 강조
     } else {
       box.textContent = "✉️";
-      box.style.cursor = "pointer";
+      box.style.border = "1px solid #eee";            // 아주 연한 테두리
+  box.style.backgroundColor = "#ffffff";          // 기본 흰 배경
+  box.style.color = "#999";                       // 이모지 연회색
     }
 
     box.style.userSelect = "none";
-    box.style.width = "48px";
-    box.style.height = "48px";
-    box.style.fontSize = "1.4rem";
-    box.style.display = "flex";
-    box.style.alignItems = "center";
-    box.style.justifyContent = "center";
-    box.style.border = "1px solid #ccc";
-    box.style.borderRadius = "6px";
-    box.style.backgroundColor = "#ffffff";
-    box.style.margin = "4px";
+box.style.width = "100%";                         // ✅ 내부 꽉 차게
+box.style.aspectRatio = "1 / 1";                  // ✅ 정사각형
+box.style.fontSize = "1.3rem";
+box.style.display = "flex";
+box.style.alignItems = "center";
+box.style.justifyContent = "center";
+box.style.border = "1px solid #ccc";
+box.style.borderRadius = "6px";
+box.style.backgroundColor = "#ffffff";
+box.style.margin = "4px";
+
+/* ✅ 한 줄에 8개 배치용 핵심 설정 */
+box.style.flex = "0 0 12.5%";                     // 100 / 8 = 12.5%
+box.style.maxWidth = "12.5%";
+box.style.boxSizing = "border-box";
+
 
     // ✅ 색상 및 포지션 강조는 열린 쪽지 중 미확정인 경우에만
     if (isOpened && !isConfirmed) {
@@ -2248,7 +2293,7 @@ function showSelectionModal() {
     }
 
     const btn = document.createElement("button");
-    btn.textContent = item.value;
+    btn.innerHTML = item.value.replace(" ", "<br>");
     applyButtonStyle(btn, item.value); // 🎯 스타일 함수 따로!
 
     btn.onclick = () => confirmSelection(item.index);  // ✅ 주의: index 아니라 실제 item.index!
@@ -2496,8 +2541,8 @@ function updateLiveResultTable() {
       box-sizing: border-box;
     ">
       <div style="flex: 1 1 45%; max-width: 320px; min-width: 150px;">
-        <h3 style="text-align: center;">A팀 추첨 결과</h3>
-        <table id="liveA" border="1" cellpadding="8" style="
+        <h3 style="text-align: center; margin: 0 0 0.5rem 0;">A팀 추첨 결과</h3>
+        <table id="liveA" border="1" cellpadding="4" style="
           background-color: #fff9c4;
           border-collapse: collapse;
           width: 100%;
@@ -2508,8 +2553,8 @@ function updateLiveResultTable() {
         </table>
       </div>
       <div id="liveBWrapper" style="flex: 1 1 45%; max-width: 320px; min-width: 150px; display: none;">
-        <h3 style="text-align: center;">B팀 추첨 결과</h3>
-        <table id="liveB" border="1" cellpadding="8" style="
+        <h3 style="text-align: center; margin: 0 0 0.5rem 0;">B팀 추첨 결과</h3>
+        <table id="liveB" border="1" cellpadding="4" style="
           background-color: #ffe0b2;
           border-collapse: collapse;
           width: 100%;
@@ -2521,8 +2566,8 @@ function updateLiveResultTable() {
       </div>
     </div>
     <div id="liveCWrapper" style="width: 100%; margin-top: 1rem; display: none;">
-      <h3 style="text-align: center;">C팀 추첨 결과</h3>
-      <table id="liveC" border="1" cellpadding="8" style="
+      <h3 style="text-align: center; margin: 0 0 0.5rem 0;">C팀 추첨 결과</h3>
+      <table id="liveC" border="1" cellpadding="4" style="
         background-color: #bbdefb;
         border-collapse: collapse;
         width: 100%;
@@ -3625,7 +3670,79 @@ function getTeamColorClass(team) {
   return "";
 }
 
+function startTeamDraw(team) {
+  const existing = document.querySelector(`#teamDivisionResult table[id^="live${team}"]`);
+  if (!existing) {
+    if (team === 'C') {
+      alert("C팀이 없어서 뽑기 불가능합니다.");
+      return;
+    }
+  }
 
+  renderTeamDrawUI(team); // 아래 함수에서 실제 UI 생성
+}
+
+function overwriteTeamPositions(team, newPositions) {
+  const table = document.querySelector(`#live${team} tbody`);
+  if (!table) return;
+
+  const rows = table.querySelectorAll("tr");
+  rows.forEach((row, idx) => {
+    const cells = row.querySelectorAll("td");
+    if (cells.length === 2 && newPositions[idx]) {
+      cells[1].textContent = newPositions[idx];  // 포지션 덮어쓰기
+    }
+  });
+}
+
+function drawPositionsOnly(team) {
+  const select = document.getElementById(`formation${team}`);
+  let formation = select.value;
+
+  if (!formation) {
+    alert("포메이션을 선택하세요.");
+    return;
+  }
+
+  if (formation === "custom") {
+    const df = parseInt(document.getElementById(`df${team}`).value || 0);
+    const mf = parseInt(document.getElementById(`mf${team}`).value || 0);
+    const fw = parseInt(document.getElementById(`fw${team}`).value || 0);
+    const total = 1 + df + mf + fw;
+    const starter = parseInt(document.getElementById(`starter${team}`).value || 0);
+
+    if (total > starter) {
+      alert("포지션 수가 선발 인원보다 많습니다.");
+      return;
+    }
+
+    formation = `1-${df}-${mf}-${fw}`; // GK 포함
+  }
+
+  const [gk = 1, df, mf, fw] = formation.split("-").map(Number);
+  const positions = [
+    ...Array(gk).fill("GK"),
+    ...Array(df).fill("DF"),
+    ...Array(mf).fill("MF"),
+    ...Array(fw).fill("FW")
+  ];
+
+  const table = document.querySelector(`#live${team} tbody`);
+  if (!table) {
+    alert(`${team}팀 명단 테이블이 없습니다.`);
+    return;
+  }
+
+  const rows = table.querySelectorAll("tr");
+  rows.forEach((row, idx) => {
+    const cells = row.querySelectorAll("td");
+    if (cells.length >= 2) {
+      cells[1].textContent = positions[idx] || "휴식";
+    }
+  });
+
+  alert(`${team}팀 포지션이 업데이트 되었습니다.`);
+}
 
 
 
@@ -3638,23 +3755,23 @@ function getTeamColorClass(team) {
   left:0;
   width:100%;
   height:100%;
-  background-color: rgba(0,0,0,0.6);
+  background-color: rgba(0,0,0,0.2);
   z-index:1001;
-  justify-content: flex-start;  /* 중앙 → 상단 */
+  justify-content: center;  
   align-items: flex-start;
-  padding: 4rem 2rem;
+  padding: 1rem 0.5rem;
   box-sizing: border-box;
   overflow-y: auto;
 ">
   <div style="background:white; padding:2rem; border-radius:10px; max-width:90%; text-align:center;">
     <h3>추첨 결과</h3>
-    <div id="modalOptions" style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin-top:1rem;"></div>
+    <div id="modalOptions" style="display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; margin-top:0.5rem;"></div>
   </div>
 </div>
 
 <!-- 포지션 뽑기 모달 -->
 <div id="drawModalOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
-  background-color: rgba(0,0,0,0.6); z-index:1000; overflow:auto; justify-content: center; align-items: center;
+  background-color: rgba(0,0,0,0.2); z-index:1000; overflow:auto; justify-content: center; align-items: center;
 ">
 
 <div style="
@@ -3667,24 +3784,20 @@ overflow-y: auto;
 display: flex;
 flex-direction: column;
 align-items: center;
-gap: 1.5rem;
+gap: 0.8rem;
 box-sizing: border-box;">
 
 
-    <!-- 제목 -->
-    <h2 style="font-size: 1.4em; font-weight: bold; margin-bottom: 0.4rem;">
-      ✉️ 뽑기 순서
-    </h2>
-    
 
     <!-- 테이블 스타일 수정 -->
 <table style="
-font-size: 1.4rem;             /* 기존보다 살짝 키움 */
+font-size: 1.2rem;             /* 기존보다 살짝 키움 */
 border-collapse: collapse;
 border: 1px solid #ccc;
 min-width: 300px;
 text-align: center;            /* ✅ 가운데 정렬 */
-margin-bottom: 0.3rem;         /* 제목과의 간격 조정 */
+margin-top: 0;
+margin-bottom: 0.2rem;         /* 제목과의 간격 조정 */
 ">
       <thead style="background-color: #f9f9f9;">
         <tr>
@@ -3704,13 +3817,14 @@ margin-bottom: 0.3rem;         /* 제목과의 간격 조정 */
 
     <!-- 쪽지 영역 -->
     <div id="envelopeArea" style="
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 0.3rem;
-      margin-bottom: 1rem;
-      max-width: 100%;
-    "></div>
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;       /* 또는 space-between */
+  gap: 4px;
+  padding: 0.5rem;
+">
+
+</div>
 
     <!-- 결과 테이블 -->
     <div id="liveResultTable" style="
@@ -3748,7 +3862,18 @@ margin-bottom: 0.3rem;         /* 제목과의 간격 조정 */
     }
   }
 </script>
-
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const cTeamTable = document.querySelector("#liveC");
+      const cButton = document.getElementById("drawCButton");
+      if (!cTeamTable && cButton) {
+        cButton.disabled = true;
+        cButton.style.opacity = "0.5";
+        cButton.style.cursor = "not-allowed";
+        cButton.textContent = "C팀 없음 (뽑기 불가)";
+      }
+    });
+  </script>
 <!-- ✅ 넓은 폭 적용 -->
 <div id="resultModalOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
   background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 9999;">
