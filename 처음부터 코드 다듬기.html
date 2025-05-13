@@ -128,11 +128,13 @@
 
     .member-table th:nth-child(2),
     .member-table td:nth-child(2) {
-      width: 60px;      /* 이름 */
-      max-width: 60px;
-      font-size: 0.85rem;
-      padding: 4px;
+      width: auto;
+      max-width: none;
+      padding: 0.6rem;
+      font-size: 1rem;
+      white-space: nowrap;
     }
+
 
     .member-table th:nth-child(3),
     .member-table td:nth-child(3) {
@@ -184,8 +186,8 @@
     /* ✅ 포지션 뽑기용 쪽지 스타일 */
     .envelope-box {
       aspect-ratio: 16 / 9;              /* 📐 가로가 긴 직사각형 */
-      flex: 1 0 calc((100% - 35px) / 8); /* ✅ 8개씩 배치, 간격 포함 계산 */
-      max-width: calc((100% - 35px) / 8);
+      flex: 1 0 calc((100% - 35px) / 7); /* ✅ 8개씩 배치, 간격 포함 계산 */
+      max-width: calc((100% - 35px) / 7);
       height: auto;                      /* aspect-ratio에 의해 자동 결정됨 */
       display: flex;
       align-items: center;
@@ -195,7 +197,7 @@
       background-color: #f5f5f5;
       border: 1px solid #aaa;
       border-radius: 6px;
-      margin: 2.5px;                     /* 가로/세로 간격 5px → 절반 적용 */
+      margin: 1px;                     /* 가로/세로 간격 5px → 절반 적용 */
       cursor: pointer;
       transition: transform 0.2s ease-in-out;
     }
@@ -213,7 +215,7 @@
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
-      gap: 6px;
+      gap: 2px;
     }
   
     /* ✅ 팀구분 결과 테이블 */
@@ -287,6 +289,43 @@
     .delete-btn:hover {
       background-color: #ffcdd2;
     }
+
+    .team-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+
+.row-ab {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  width: 100%;
+  max-width: 800px;
+}
+
+.team-box {
+  background-color: white;
+  border-radius: 10px;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  width: 100%;
+  max-width: 380px;  /* A팀, C팀 폭 통일 */
+}
+
+.row-c {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+.control-cell {
+  display: none;
+}
+.control-mode-active .control-cell {
+  display: table-cell !important;
+}
   
     /* ✅ 조퇴 테이블 */
     #lateStatusTable {
@@ -392,7 +431,7 @@
             <th style="width: 50px; text-align: center; padding: 0.6rem;">순</th>
             <th style="text-align: center; padding: 0.6rem;">성명</th>
             <th style="width: 80px; text-align: center; padding: 0.6rem;">지각</th>
-            <th style="width: 120px; text-align: center; padding: 0.6rem;">조작</th>
+            <th class="control-cell" style="width: 120px; text-align: center; padding: 0.6rem;">조작</th>
           </tr>
         </thead>
         <tbody>
@@ -403,7 +442,13 @@
 
     <div id="attendanceList" style="margin-top: 1rem;"></div>
     <div style="text-align: center; margin-top: 1rem;">
-      <button onclick="saveAttendance()" style="padding: 0.7rem 1.3rem;">출석 저장</button>
+      <button onclick="toggleReorderMode()" style="padding: 0.5rem 1.1rem; margin-right: 0.5rem;">
+        🔀순서 변경
+      </button>
+      <button onclick="toggleDeleteMode()" style="padding: 0.5rem 1rem; margin-right: 0.5rem;">
+        🗑️삭제
+      </button>
+      <button onclick="saveAttendance()" style="padding: 0.5rem 1rem;">저장</button>
     </div>
   
     <div id="attendanceSummary" style="margin-top: 1rem; background: #f3f3f3; padding: 1rem; border-radius: 8px;"></div>
@@ -767,10 +812,20 @@ const monthSelect = document.getElementById("monthSelect");
 const daySelect = document.getElementById("daySelect");
 const weekdayDisplay = document.getElementById("weekdayDisplay");
 
+let reorderMode = false;
+let deleteMode = false;
 
+function toggleReorderMode() {
+  reorderMode = !reorderMode;
+  deleteMode = false;
+  renderSelectedTable(); // 재렌더링
+}
 
-
-
+function toggleDeleteMode() {
+  deleteMode = !deleteMode;
+  reorderMode = false;
+  renderSelectedTable(); // 재렌더링
+}
 
 function confirmAndClearAttendance() {
     if (confirm("정말로 출석부를 삭제하시겠습니까?")) {
@@ -1126,6 +1181,9 @@ function showNonMemberInput(select) {
   box.style.display = "flex";
   box.style.gap = "10px";
   box.style.alignItems = "center";
+  box.style.flexDirection = "column";
+  box.style.width = "100%";
+  box.style.maxWidth = "500px";
 
   const input = document.createElement("input");
   input.placeholder = "비회원 성명 입력";
@@ -1186,6 +1244,9 @@ function showMiddleInsertForm() {
   box.style.gap = "10px";
   box.style.alignItems = "center";
   box.style.flexWrap = "wrap";
+  box.style.flexDirection = "column";   // 아래줄로 나오게
+  box.style.width = "100%";             // 부모 너비 전체 사용
+  box.style.maxWidth = "500px";         // 모바일에서 안정적 너비
 
   // 성명 선택 드롭다운
   const nameSelect = document.createElement("select");
@@ -1297,6 +1358,9 @@ function showMiddleInsertForm() {
 }
 
 function renderSelectedTable() {
+
+table.classList.toggle("control-mode-active", reorderMode || deleteMode);
+
   let table = document.getElementById("selectedTable");
 
 if (!table) {
@@ -1346,6 +1410,7 @@ tbody.innerHTML = "";  // 기존 내용 초기화
     lateTd.appendChild(lateCheck);
 
     const controlTd = document.createElement("td");
+    controlTd.classList.add("control-cell");
     controlTd.style.textAlign = "center";
 
     const upBtn = document.createElement("button");
@@ -1387,9 +1452,14 @@ tbody.innerHTML = "";  // 기존 내용 초기화
 };
 
 
-    controlTd.appendChild(upBtn);
-    controlTd.appendChild(downBtn);
-    controlTd.appendChild(delBtn);
+    if (reorderMode) {
+      controlTd.appendChild(upBtn);
+      controlTd.appendChild(downBtn);
+    }
+    if (deleteMode) {
+      controlTd.appendChild(delBtn);
+    }
+
 
     row.appendChild(rankTd);
     row.appendChild(nameTd);
@@ -2871,10 +2941,24 @@ function showSelectionModal() {
   const content = document.getElementById("selectionContent");
   content.innerHTML = "";
 
+  content.style.display = "flex";
+  content.style.flexWrap = "wrap";
+  content.style.justifyContent = "center";
+  content.style.gap = "0.6rem";
+
+
   if (!openedEnvelopes || openedEnvelopes.length === 0) {
     content.innerHTML = `<p style="font-size:1.2rem; color: red;">선택 가능한 쪽지가 없습니다.</p>`;
     return;
   }
+  const player = voteOrder[currentPlayerIndex];
+  const playerName = player?.name || "선택자";
+  const nameDiv = document.createElement("div");
+  nameDiv.textContent = `👤 ${playerName} 선생님 선택 중`;
+  nameDiv.style.fontSize = "1.3rem";
+  nameDiv.style.marginBottom = "1rem";
+  nameDiv.style.fontWeight = "bold";
+  content.appendChild(nameDiv);
 
   openedEnvelopes.forEach((item) => {
     const btn = document.createElement("button");
@@ -2902,6 +2986,9 @@ function showSelectionModal() {
     btn.style.minWidth = "100px";
     btn.style.cursor = "pointer";
     btn.style.whiteSpace = "pre-line";
+    btn.style.flex = "0 0 calc((100% - 2rem) / 3)";
+    btn.style.maxWidth = "120px";
+    btn.style.boxSizing = "border-box";
 
     btn.onclick = () => {
       confirmSelection(item.index);
@@ -3029,48 +3116,70 @@ function displayFinalTeamResults() {
   const container = document.getElementById("teamDivisionResult");
   if (!container) return;
 
-  container.innerHTML = ""; // 초기화
+  container.innerHTML = "";
 
-  ["A", "B", "C"].forEach(team => {
-    const teamMembers = finalTeamResults[team];
-    if (!teamMembers || teamMembers.length === 0) {
-      if (team === "C") return; // C팀 없으면 테이블 자체 숨김
-      else return;
-    }
+  const colorMap = { A: "#fff9c4", B: "#ffe0b2", C: "#bbdefb" };
 
-    // 팀별 테이블 생성
+  const createTeamBox = (team, members) => {
+    const wrapper = document.createElement("div");
+    wrapper.className = "team-box";
+    wrapper.style.backgroundColor = colorMap[team];
+
     const table = document.createElement("table");
-    table.className = `team-table team-${team}`;
+    table.style.width = "100%";
+    table.style.borderCollapse = "collapse";
+    table.style.background = "white";
 
     const thead = document.createElement("thead");
     thead.innerHTML = `<tr><th>${team}팀</th><th>포지션</th><th>소속</th></tr>`;
     table.appendChild(thead);
 
     const tbody = document.createElement("tbody");
-    teamMembers.forEach(player => {
+    members.forEach(player => {
       const tr = document.createElement("tr");
+      const teamInfo = memberList.find(m => m.name === player.name);
+      const affiliation = teamInfo?.team || "";
 
-      const tdName = document.createElement("td");
-      tdName.textContent = player.name;
-
-      const tdPos = document.createElement("td");
-      tdPos.textContent = player.position;
-
-      const tdAff = document.createElement("td");
-      const found = memberList.find(m => m.name === player.name);
-      tdAff.textContent = found?.team || "";
-
-
-      tr.appendChild(tdName);
-      tr.appendChild(tdPos);
-      tr.appendChild(tdAff);
+      tr.innerHTML = `
+        <td>${player.name}</td>
+        <td>${player.position}</td>
+        <td>${affiliation}</td>
+      `;
       tbody.appendChild(tr);
     });
 
     table.appendChild(tbody);
-    container.appendChild(table);
-  });
+    wrapper.appendChild(table);
+    return wrapper;
+  };
+
+  const teamA = finalTeamResults.A || [];
+  const teamB = finalTeamResults.B || [];
+  const teamC = finalTeamResults.C || [];
+
+  const teamWrapper = document.createElement("div");
+  teamWrapper.className = "team-wrapper";
+
+  const rowAB = document.createElement("div");
+  rowAB.className = "row-ab";
+  rowAB.appendChild(createTeamBox("A", teamA));
+  if (teamB.length > 0) {
+    rowAB.appendChild(createTeamBox("B", teamB));
+  }
+
+  teamWrapper.appendChild(rowAB);
+
+  // ✅ C팀은 B팀 있을 때만 A팀 아래에 표시
+  if (teamB.length > 0 && teamC.length > 0) {
+    const rowC = document.createElement("div");
+    rowC.className = "row-c";
+    rowC.appendChild(createTeamBox("C", teamC));
+    teamWrapper.appendChild(rowC);
+  }
+
+  container.appendChild(teamWrapper);
 }
+
 
 function resetEnvelopeSelection() {
   const lastSelectedName = voteOrder[currentPlayerIndex - 1]?.name;
@@ -3177,9 +3286,9 @@ function renderLiveTeamTable() {
   for (const team of ["A", "B", "C"]) {
     if (teams[team].length > 0) {
       html += `
-        <div style="flex: 1; min-width: 260px; background: ${teamColors[team]}; padding: 1rem; border-radius: 8px;">
+        <div style="flex: 1 1 45%; min-width: 260px; padding: 1rem;">
           <h4 style="text-align: center; margin-bottom: 0.6rem;">${team}팀</h4>
-          <table border="1" cellpadding="6" style="border-collapse: collapse; width: 100%; text-align: center; background: white;">
+          <table border="1" cellpadding="6" style="border-collapse: collapse; width: 100%; text-align: center; background: ${teamColors[team]}; border-radius: 8px;">
             <thead><tr><th>이름</th><th>포지션</th></tr></thead><tbody>
       `;
       teams[team].forEach(p => {
@@ -3222,6 +3331,34 @@ function shuffleAvailableNotes() {
   console.warn("⚠️ originalNotes가 비어 있어 셔플할 수 없습니다.");
 }
 }
+function cancelPositionDraw() {
+  if (!confirm("정말 포지션 뽑기를 완전히 취소하시겠습니까?\n(진행 중인 데이터는 모두 초기화됩니다)")) return;
+
+  // 상태 초기화
+  currentPlayerIndex = 0;
+  pickedIndexes = [];
+  openedEnvelopes = [];
+  confirmedSelections = {};
+  confirmedIndexes = [];
+  confirmedIndexesMap = {};
+  fixedNotes = [];
+  voteOrder = [];
+  playerVoteCount = [];
+  shuffledNotes = [];
+  originalNotes = [];
+
+  // 모달 닫기
+  document.getElementById("envelopeModal").style.display = "none";
+
+  // UI 초기화
+  const preview = document.getElementById("liveTeamPreview");
+  if (preview) preview.innerHTML = "";
+
+  const envelopeArea = document.getElementById("envelopeArea");
+  if (envelopeArea) envelopeArea.innerHTML = "";
+
+  alert("✅ 포지션 뽑기가 취소되었습니다.");
+}
 
 
 
@@ -3257,7 +3394,7 @@ window.addEventListener("DOMContentLoaded", () => {
 
 </script>
 <!-- 선택 결과 모달 -->
-    <div id="selectionModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:99999; align-items:center; justify-content:center;">
+    <div id="selectionModal" style="display:none; position:absolute; top:0; left:0; width:100%; background:rgba(255,255,255,0.95); z-index:99999; padding: 1rem 0;">
       <div style="background:white; padding:2rem; border-radius:10px; width:90%; max-width:600px; text-align:center;">
         <h2 style="font-size:1.5rem; margin-bottom:1rem;">💡 선택 결과</h2>
         <div id="selectionContent" style="font-size:1.3rem; font-weight:bold;"></div>
@@ -3289,8 +3426,11 @@ window.addEventListener("DOMContentLoaded", () => {
       🔄 다시 선택
     </button>
     <button onclick="fullResetDraw()" style="padding: 0.6rem 1rem; font-size: 1.1rem;">
-      ♻️ 전체 초기화
+      ♻️ 초기화
     </button>
+    <button onclick="cancelPositionDraw()" style="padding: 0.6rem 1rem; font-size: 1.1rem; margin-left: 10px;">
+    ❌ 뽑기 취소
+  </button>
   </div>
   <div id="liveTeamPreview" style="margin-top: 1.5rem;"></div>
 
