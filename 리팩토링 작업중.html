@@ -182,7 +182,21 @@
       font-size: 1.56rem;
       font-weight: bold;
     }
-  
+    #selectionModal {
+      position: fixed;
+      top: 10%;                 /* 화면 상단 약간 아래 */
+      left: 50%;
+      transform: translateX(-50%);
+      background: white;        /* 흰 배경 */
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      z-index: 9999;
+      display: none;
+      max-width: 90vw;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
     /* ✅ 포지션 뽑기용 쪽지 스타일 */
     .envelope-box {
       aspect-ratio: 16 / 9;              /* 📐 가로가 긴 직사각형 */
@@ -1663,177 +1677,6 @@ function suggestFormation(team) {
 let formationA = null;
 let formationB = null;
 
-function drawMatchPositions() {
-  let formationA, dfA = 0, mfA = 0, fwA = 0;
-  let formationB, dfB = 0, mfB = 0, fwB = 0;
-
-  console.log("🎯 drawMatchPositions 호출됨");
-
-  // ✅ 탭 전환
-  switchTab('matchTab');
-
-  // ✅ 초기화
-  currentPlayerIndex = 0;
-  openedEnvelopes = [];
-  confirmedSelections = {};
-  confirmedIndexes = [];
-  lastSelections = [];
-  fixedNotes = [];
-  confirmedIndexesMap = {};
-
-  // ✅ 출석자 및 포메이션 확인
-  if (!matchPlayers || matchPlayers.length === 0) {
-    alert("출석부를 먼저 적용해주세요.");
-    return;
-  }
-
-  const formationASelect = document.getElementById("formationASelect").value;
-  const formationBSelect = document.getElementById("formationBSelect").value;
-  if (!formationASelect || !formationBSelect) {
-    alert("포메이션을 먼저 선택하세요.");
-    return;
-  }
-
-  // ✅ A팀 포지션 파싱
-  if (formationASelect === "custom") {
-    dfA = parseInt(document.getElementById("dfA").value || 0);
-    mfA = parseInt(document.getElementById("mfA").value || 0);
-    fwA = parseInt(document.getElementById("fwA").value || 0);
-    const starter = parseInt(document.getElementById("matchAStarter").value || 0);
-    const total = 1 + dfA + mfA + fwA;
-    if (total > starter) {
-      alert(`⚠️ A팀 포지션 수(${total})가 선발 인원(${starter})을 초과했습니다.`);
-      return;
-    }
-    formationA = `${dfA}-${mfA}-${fwA}`;
-  } else {
-    formationA = formationASelect;
-    [dfA, mfA, fwA] = formationA.split("-").map(Number); // ✅ 추가 필요
-  }
-
-  // ✅ B팀 포지션 파싱
-  if (formationBSelect === "custom") {
-    dfB = parseInt(document.getElementById("dfB").value || 0);
-    mfB = parseInt(document.getElementById("mfB").value || 0);
-    fwB = parseInt(document.getElementById("fwB").value || 0);
-    const starter = parseInt(document.getElementById("matchBStarter").value || 0);
-    const total = 1 + dfB + mfB + fwB;
-    if (starter === 0 && total > 0) {
-      alert(`⚠️ B팀을 뽑지 않으려면 포지션도 모두 0이어야 합니다.`);
-      return;
-    }
-    if (total > starter) {
-      alert(`⚠️ B팀 포지션 수(${total})가 선발 인원(${starter})을 초과했습니다.`);
-      return;
-    }
-    formationB = `${dfB}-${mfB}-${fwB}`;
-  } else {
-    formationB = formationBSelect;
-    [dfB, mfB, fwB] = formationB.split("-").map(Number); // ✅ 추가 필요
-  }
-
-  // ✅ 팀별 인원 분배
-  const aCount = 1 + dfA + mfA + fwA;
-  const bCount = 1 + dfB + mfB + fwB;
-
-  const players = [...matchPlayers];
-  const teamA = players.slice(0, aCount);
-  const teamB = players.slice(aCount, aCount + bCount);
-
-  let cCount = parseInt(document.getElementById("matchCInput").value || 0);
-  let teamC = [];
-
-  if (cCount > 0) {
-    teamC = players.slice(aCount + bCount, aCount + bCount + cCount);
-  } else {
-    const restPlayers = players.slice(aCount + bCount);
-    const half = Math.ceil(restPlayers.length / 2);
-    teamA.push(...restPlayers.slice(0, half));
-    teamB.push(...restPlayers.slice(half));
-  }
-
-  window.matchTeamAssignments = {
-    formationA,
-    formationB,
-    teamA,
-    teamB,
-    teamC
-  };
-
-  window.originalNotes = generateShuffledNotesFromCurrentForm();
-  shuffleAvailableNotes();
-  console.log("✅ 실제 shuffledNotes 생성 결과:", window.shuffledNotes);
-  console.log("📊 포지션 값 확인: ", {
-    A팀: { dfA, mfA, fwA },
-    B팀: { dfB, mfB, fwB }
-  });
-
-  // ✅ 투표 순서 설정
-  setupVotingOrder();
-
-  // ✅ 첫 번째 플레이어용 쪽지 뽑기
-  setTimeout(() => {
-    console.log("🧩 setTimeout 진입!");
-    console.log("📦 shuffledNotes:", window.shuffledNotes);
-    pickedIndexes = [];
-    renderEnvelopes();
-    openEnvelopeModal();
-    setTimeout(() => {
-      showVotingInfo();
-    }, 200);
-  }, 100);
-
-  // ✅ 팀구분 및 2~4경기 탭 표시
-  const tabContainer = document.getElementById("tabButtons");
-
-  if (!document.getElementById("teamTabButton")) {
-    const teamBtn = document.createElement("button");
-    teamBtn.id = "teamTabButton";
-    teamBtn.textContent = "팀구분";
-    teamBtn.setAttribute("onclick", "showTab('teamTab')");
-    tabContainer.appendChild(teamBtn);
-  }
-
-  if (!document.getElementById("matchSetup2Button")) {
-    const match2Btn = document.createElement("button");
-    match2Btn.id = "matchSetup2Button";
-    match2Btn.textContent = "경기 편성\n2~4경기";
-    match2Btn.setAttribute("onclick", "showTab('matchSetup2')");
-    tabContainer.appendChild(match2Btn);
-  }
-}
-
-
-function generateShuffledNotesFromCurrentForm({ dfA, mfA, fwA, starterA, dfB, mfB, fwB, starterB, cCount }) {
-  const notes = [];
-
-  const totalA = 1 + dfA + mfA + fwA;
-  const restA = starterA - totalA;
-  notes.push("A팀 GK");
-  notes.push(...Array(dfA).fill("A팀 DF"));
-  notes.push(...Array(mfA).fill("A팀 MF"));
-  notes.push(...Array(fwA).fill("A팀 FW"));
-  if (restA >= 1) notes.push("A팀 심판");
-  if (restA > 1) notes.push(...Array(restA - 1).fill("A팀 휴식"));
-
-  const totalB = (dfB + mfB + fwB > 0) ? 1 + dfB + mfB + fwB : 0;
-  const restB = starterB - totalB;
-  if (starterB > 0) {
-    notes.push("B팀 GK");
-    notes.push(...Array(dfB).fill("B팀 DF"));
-    notes.push(...Array(mfB).fill("B팀 MF"));
-    notes.push(...Array(fwB).fill("B팀 FW"));
-    if (restB >= 1) notes.push("B팀 심판");
-    if (restB > 1) notes.push(...Array(restB - 1).fill("B팀 휴식"));
-  }
-
-  if (cCount > 0) {
-    notes.push(...Array(cCount).fill("C팀"));
-  }
-
-  return shuffle(notes);
-}
-
 function switchTab(tabId) {
   const tabs = document.querySelectorAll('.tab');
   tabs.forEach(tab => {
@@ -2942,7 +2785,7 @@ function showSelectionModal() {
 
   // ✅ 레이아웃 설정 (3개 버튼 가로 배치)
   content.style.display = "flex";
-  content.style.flexWrap = "wrap"; // 가로로만!
+  content.style.flexWrap = "wrap";
   content.style.justifyContent = "center";
   content.style.gap = "0.6rem";
 
@@ -2965,13 +2808,20 @@ function showSelectionModal() {
   content.appendChild(nameDiv);
 
   openedEnvelopes.forEach((item) => {
+    const value = item?.value;
+
+    if (typeof value !== "string") {
+      console.warn("⚠️ 잘못된 쪽지 항목:", item);
+      return; // 이 항목 건너뛰기
+    }
+
     const btn = document.createElement("button");
-    btn.innerHTML = item.value.replace(" ", "<br>");
+    btn.innerHTML = value.replace(" ", "<br>");
 
     // ✅ 팀별 배경색
-    if (item.value.includes("A팀")) btn.style.backgroundColor = "#fff9c4";
-    else if (item.value.includes("B팀")) btn.style.backgroundColor = "#ffe0b2";
-    else if (item.value.includes("C팀")) btn.style.backgroundColor = "#e1f5fe";
+    if (value.includes("A팀")) btn.style.backgroundColor = "#fff9c4";
+    else if (value.includes("B팀")) btn.style.backgroundColor = "#ffe0b2";
+    else if (value.includes("C팀")) btn.style.backgroundColor = "#e1f5fe";
     else btn.style.backgroundColor = "#ffffff";
 
     // ✅ 공통 스타일
@@ -2983,8 +2833,8 @@ function showSelectionModal() {
       whiteSpace: "pre-line",
       cursor: "pointer",
       boxSizing: "border-box",
-      flex: "1 1 calc(30% - 0.6rem)",   // 반응형 비율 지정 (3개씩 정렬)
-      maxWidth: "100px",                // 또는 생략
+      flex: "1 1 calc(30% - 0.6rem)",
+      maxWidth: "100px",
       textAlign: "center"
     });
 
@@ -2998,7 +2848,6 @@ function showSelectionModal() {
 
   document.getElementById("selectionModal").style.display = "flex";
 }
-
 
 function closeSelectionModal() {
   document.getElementById("selectionModal").style.display = "none";
@@ -3296,11 +3145,12 @@ function renderLiveTeamTable() {
   if (!container) return;
 
   const teams = { A: [], B: [], C: [] };
-  for (const [name, pos] of Object.entries(confirmedSelections)) {
-    const match = pos.match(/^(A팀|B팀|C팀)\s*(.*)$/);
-    if (match) {
-      const team = match[1].replace("팀", "");
-      const position = match[2];
+
+  for (const team of ["A", "B", "C"]) {
+    const selections = confirmedSelections?.[team];
+    if (!selections) continue;
+
+    for (const [name, position] of Object.entries(selections)) {
       teams[team].push({ name, position });
     }
   }
@@ -3317,11 +3167,26 @@ function renderLiveTeamTable() {
   for (const team of ["A", "B", "C"]) {
     if (teams[team].length > 0) {
       html += `
-        <div style="flex: 1 1 45%; min-width: 260px; padding: 1rem;">
-          <h4 style="text-align: center; margin-bottom: 0.6rem;">${team}팀</h4>
-          <table border="1" cellpadding="6" style="border-collapse: collapse; width: 100%; text-align: center; background: ${teamColors[team]}; border-radius: 8px;">
-            <thead><tr><th>이름</th><th>포지션</th></tr></thead><tbody>
-      `;
+    <div style="
+      flex: 1 1 47%;
+      min-width: 160px;
+      max-width: 47%;
+      box-sizing: border-box;
+      padding: 1rem;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    ">
+      <h4 style="text-align: center; margin-bottom: 0.6rem;">${team}팀</h4>
+      <table border="1" cellpadding="6" style="
+        border-collapse: collapse;
+        width: 100%;
+        text-align: center;
+        background: ${teamColors[team]};
+        border-radius: 8px;
+      ">
+        <thead><tr><th>이름</th><th>포지션</th></tr></thead><tbody>
+    `;
       teams[team].forEach(p => {
         html += `<tr><td>${p.name}</td><td>${p.position}</td></tr>`;
       });
@@ -3332,6 +3197,7 @@ function renderLiveTeamTable() {
   html += "</div>";
   container.innerHTML = html;
 }
+
 
 function shuffle(array) {
   const result = [...array]; // 원본 훼손 방지
@@ -3392,46 +3258,35 @@ function cancelPositionDraw() {
 }
 
 function parseFormation(team) {
-  const selectEl = document.getElementById(`formation${team}Select`);
-  const starterEl = document.getElementById(`match${team}Starter`);
+  const formationSelect = document.getElementById(`formation${team}Select`);
+  const starterInput = document.getElementById(`match${team}Starter`);
 
-  const select = selectEl?.value;
-  const starter = parseInt(starterEl?.value || 0);
-
-  let df = 0, mf = 0, fw = 0;
-
-  if (select === "custom") {
-    df = parseInt(document.getElementById(`df${team}`)?.value || 0);
-    mf = parseInt(document.getElementById(`mf${team}`)?.value || 0);
-    fw = parseInt(document.getElementById(`fw${team}`)?.value || 0);
-
-    if (df + mf + fw === 0) {
-      alert(`${team}팀 포지션이 모두 0입니다. 입력을 확인하세요.`);
-      throw new Error("포지션 미지정");
-    }
-
-  } else if (select && /^\d+-\d+-\d+$/.test(select)) {
-    [df, mf, fw] = select.split("-").map(Number);
-  } else {
-    alert(`${team}팀 포지션 형식이 잘못되었습니다.`);
-    throw new Error("포지션 파싱 실패");
+  if (!formationSelect || !starterInput) {
+    console.warn(`❌ ${team}팀 포메이션 또는 선발 인원 입력이 없습니다.`);
+    return null;
   }
 
-  const total = 1 + df + mf + fw;
-  if (total > starter) {
-    alert(`${team}팀 포지션 수(${total})가 선발 인원(${starter})을 초과했습니다.`);
-    throw new Error("포지션 초과");
+  const formationValue = formationSelect.value;
+  const starter = parseInt(starterInput.value || 0);
+
+  let df = 0, mf = 0, fw = 0;
+  if (formationValue === "custom") {
+    df = parseInt(document.getElementById(`df${team}`).value || 0);
+    mf = parseInt(document.getElementById(`mf${team}`).value || 0);
+    fw = parseInt(document.getElementById(`fw${team}`).value || 0);
+  } else {
+    [df, mf, fw] = formationValue.split("-").map(Number);
   }
 
   return { df, mf, fw, starter };
 }
 
-
 function generateTeamNotes(teamName, df, mf, fw, starter) {
   const notes = [];
 
-  const totalPositions = 1 + df + mf + fw; // GK 포함
-  const rest = starter - totalPositions;
+  const teamKey = teamName.replace("팀", "");  // "A팀" → "A"
+  const teamPlayers = finalTeamResults?.[teamKey] || [];
+  const rest = teamPlayers.length - starter;
 
   // 포지션 쪽지
   notes.push(`${teamName} GK`);
@@ -3445,6 +3300,7 @@ function generateTeamNotes(teamName, df, mf, fw, starter) {
 
   return notes;
 }
+
 function drawMatchPositions(team = null) {
   try {
     console.log(`🎯 drawMatchPositions 호출됨 (team=${team ?? "전체"})`);
@@ -3453,7 +3309,11 @@ function drawMatchPositions(team = null) {
     // ✅ 공통 초기화
     currentPlayerIndex = 0;
     openedEnvelopes = [];
-    confirmedSelections = {};
+    confirmedSelections = {
+      A: {},
+      B: {},
+      C: {}
+    };
     confirmedIndexes = [];
     lastSelections = [];
     fixedNotes = [];
@@ -3467,14 +3327,28 @@ function drawMatchPositions(team = null) {
     let notes = [];
 
     if (team === null) {
-      // ✅ 전체 팀 모드
-      assignMatchTeams();         // 1️⃣ matchPlayers → A/B/C팀 나누기
-      notes = generateAllNotes(); // 2️⃣ 각 팀별 쪽지를 한 번에 생성 + 셔플까지 완료
-    
+      assignMatchTeams();
+
+      const parsedA = parseFormation('A');
+      const parsedB = parseFormation('B');
+
+      if (!parsedA || !parsedB) {
+        alert("포메이션 설정이 올바르지 않습니다. A팀과 B팀의 포메이션을 다시 확인해주세요.");
+        return;
+      }
+
+      const { df: dfA, mf: mfA, fw: fwA, starter: starterA } = parsedA;
+      const { df: dfB, mf: mfB, fw: fwB, starter: starterB } = parsedB;
+
+      notes = generateAllNotes();
     } else {
-      // ✅ 특정 팀 모드 (A/B/C)
       const korTeamName = `${team}팀`;
-      const { df, mf, fw, starter } = parseFormation(team);
+      const parsed = parseFormation(team);
+      if (!parsed) {
+        alert(`${team}팀 포지션 설정이 올바르지 않습니다.`);
+        return;
+      }
+      const { df, mf, fw, starter } = parsed;
       notes.push(...generateTeamNotes(korTeamName, df, mf, fw, starter));
     }
 
@@ -3483,8 +3357,8 @@ function drawMatchPositions(team = null) {
     shuffleAvailableNotes();
     console.log("✅ 실제 shuffledNotes 생성 결과:", window.shuffledNotes);
 
-    // ✅ 투표 순서 설정
-    ssetupVotingOrder(team)
+    // ✅ 투표 순서 설정 (오타 수정됨)
+    setupVotingOrder(team);
 
     // ✅ 첫 번째 플레이어용 쪽지 뽑기
     setTimeout(() => {
@@ -3496,6 +3370,7 @@ function drawMatchPositions(team = null) {
 
   } catch (err) {
     console.warn("❌ drawMatchPositions 중단:", err.message);
+    console.log("🧪 에러 객체:", err);
   }
 }
 
@@ -3580,28 +3455,37 @@ function assignMatchTeams() {
   const teamB = matchPlayers.slice(aCount, aCount + bCount);
   const teamC = matchPlayers.slice(aCount + bCount, aCount + bCount + cCount);
 
+  // ✅ 이름만 담고, position은 나중에 뽑기에서 설정됨
   window.finalTeamResults = {
-  A: Object.entries(confirmedSelections.A).map(([name, position]) => ({ name, position })),
-  B: Object.entries(confirmedSelections.B).map(([name, position]) => ({ name, position })),
-  C: Object.entries(confirmedSelections.C).map(([name, position]) => ({ name, position }))
-};
-
+    A: teamA.map(p => ({ name: p.name, position: "" })),
+    B: teamB.map(p => ({ name: p.name, position: "" })),
+    C: teamC.map(p => ({ name: p.name, position: "" }))
+  };
 
   localStorage.setItem("finalTeamResults", JSON.stringify(window.finalTeamResults));
+  console.log("👤 matchPlayers:", matchPlayers);
+  console.log("📋 memberList:", memberList);
 }
+
 
 function generateAllNotes() {
   const { df: dfA, mf: mfA, fw: fwA, starter: starterA } = parseFormation('A');
   const { df: dfB, mf: mfB, fw: fwB, starter: starterB } = parseFormation('B');
-  const cCount = parseInt(document.getElementById("matchCInput").value || 0);
 
-  let notes = [];
+  const notes = [];
+
   notes.push(...generateTeamNotes("A팀", dfA, mfA, fwA, starterA));
   notes.push(...generateTeamNotes("B팀", dfB, mfB, fwB, starterB));
-  if (cCount > 0) notes.push(...Array(cCount).fill("C팀"));
+
+  // ✅ C팀은 포지션 없이 단순 쪽지
+  const teamC = finalTeamResults?.C || [];
+  if (teamC.length > 0) {
+    notes.push(...Array(teamC.length).fill("C팀"));
+  }
 
   return shuffle(notes);
 }
+
 function startTeamDraw(team) {
   const result = JSON.parse(localStorage.getItem("finalTeamResults") || "{}");
   if (team === "C" && (!result.C || result.C.length === 0)) {
@@ -3663,7 +3547,13 @@ function renderTeamDrawUI(team) {
   drawBtn.style.marginTop = "1rem";
   drawBtn.style.padding = "0.7rem 1.5rem";
   drawBtn.style.fontSize = "1rem";
-  drawBtn.onclick = () => drawMatchPositions(team);
+  drawBtn.onclick = () => {
+  if (!team) {
+    alert("팀 정보가 없습니다.");
+    return;
+  }
+  drawMatchPositions(team);
+};
   container.appendChild(drawBtn);
 }
 
