@@ -210,6 +210,30 @@
       transform: scale(1.05);
       background-color: #e0e0e0;
     }
+    .selection-note {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  font-size: 1.1rem;
+  border: 1px solid #bbb;
+  border-radius: 10px;
+  background-color: white;
+  text-align: center;
+  padding: 0.5rem;
+  overflow: hidden;
+}
+
+.selection-note::before {
+  content: attr(data-icon);
+  position: absolute;
+  font-size: 3.5rem;
+  opacity: 0.15;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
     #envelopeArea {
       display: flex;
       flex-wrap: wrap;
@@ -310,28 +334,51 @@
   font-size: 1rem;
 }
 
+/* 좌우로 나란히 */
 .row-ab {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 1rem;
-  width: 100%;
-  max-width: 800px;
+  flex-wrap: wrap;       /* ✅ 화면이 좁으면 줄 바꿈 */
+  gap: 0.4rem;
+  align-items: flex-start;
+  justify-content: space-between; /* ✅ 여백 제거 */
+}
+
+/* C팀은 A팀 아래 정렬 */
+.row-c {
+  margin-top: 1rem;
+  display: flex;
 }
 
 .team-box {
-  background-color: white;
-  border-radius: 10px;
-  padding: 1rem;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  flex: 1 1 48%;;
+  min-width: 48%;
+  max-width: 48%;
+  box-sizing: border-box;
+  padding: 0.3rem;
+  border-radius: 8px;
+  background-color: transparent; /* ✅ 바깥 배경 제거 */
+}
+/* C팀은 왼쪽 정렬되도록 */
+.row-c .team-box {
+  margin-left: 0;  /* 필요시 여백 조절 */
+}
+/* 테이블 내부 색상 적용 */
+.team-box table {
   width: 100%;
-  max-width: 380px;  /* A팀, C팀 폭 통일 */
+  border-collapse: collapse;
+  background-color: #fff9c4; /* A팀용 (JS에서 동적으로 변경 가능) */
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 0.9rem; /* ✅ 글씨 줄이기 */
 }
 
-.row-c {
-  width: 100%;
-  display: flex;
-  justify-content: center;
+/* 테이블 제목 줄 */
+.team-title {
+  background-color: transparent;
+  font-size: 1rem;
+  font-weight: bold;
+  text-align: center;
+  margin: 0.4rem 0;
 }
 .control-cell {
   display: none;
@@ -339,6 +386,67 @@
 .control-mode-active .control-cell {
   display: table-cell !important;
 }
+.diagonal-box {
+  position: relative;
+  width: 110px;
+  height: 70px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  overflow: hidden;
+  font-weight: bold;
+  box-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+  cursor: pointer;
+  box-sizing: border-box;
+  padding: 0;
+
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeSlideIn 0.4s ease forwards;
+}
+td, th {
+  white-space: nowrap;  /* ✅ 줄바꿈 방지 */
+  text-align: center;
+  padding: 0.4rem;
+}
+
+/* 좌상단: 팀 */
+.diagonal-box .team {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  font-size: 1.4rem;
+  color: #111;
+}
+
+/* 우하단: 포지션 */
+.diagonal-box .position {
+  position: absolute;
+  bottom: 8px;
+  right: 10px;
+  font-size: 1rem;
+  color: #444;
+}
+
+/* 은은한 배경 효과 */
+.diagonal-box::before {
+  content: attr(data-icon);
+  position: absolute;
+  font-size: 2.7rem;
+  opacity: 0.27;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* 애니메이션 정의 */
+@keyframes fadeSlideIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
   
     /* ✅ 조퇴 테이블 */
     #lateStatusTable {
@@ -371,9 +479,12 @@
   <!-- 탭 버튼 -->
   <div class="tab-buttons" id="tabButtons">
     <button onclick="showTab('attendanceTab')">출석부</button>
-    <button onclick="showTab('memberTab')">회원<br>관리</button>
+    <button id="teamTabButton" onclick="showTab('teamTab')" style="display:none;">팀구분</button>
+    <button id="matchTabButton" onclick="showTab('matchTab')" style="display:none;">경기<br>편성<br>1경기</button>
+    <button id="matchSetup2Button" onclick="showTab('matchSetup2')" style="display:none;">경기<br>편성<br>2-4경기</button>
+  <button onclick="showTab('memberTab')">회원<br>관리</button>
   </div>
-  
+
   <!-- 출석부 탭 -->
   <div id="attendanceTab" class="tab active">
   
@@ -621,13 +732,16 @@
   <div id="teamTab" class="tab">
     <h2>팀구분 결과</h2>
     <!-- ⛳ 인원 추가 버튼 -->
-    <div style="margin-top: 1rem; text-align: center;">
-      <button onclick="showTeamAddForm()" style="padding: 0.6rem 1.2rem; font-size: 1.1rem;">
+   <div style="margin-top: 1rem; text-align: center; display: flex; justify-content: center; flex-wrap: wrap; gap: 0.5rem;">
+      <button onclick="showTeamAddForm()" style="padding: 0.5rem 0.9rem; font-size: 1rem;">
         ➕ 인원 추가
       </button>
-      <button onclick="showTeamChangeForm()" style="margin-left: 1rem; padding: 0.6rem 1.2rem; font-size: 1.1rem;">
+      <button onclick="showTeamChangeForm()" style="padding: 0.5rem 0.9rem; font-size: 1rem;">
         🔄 팀 변경
       </button>
+        <button onclick="showLeaveForm()" style="padding: 0.5rem 0.9rem; font-size: 1rem;">
+      🚪 조퇴 처리
+    </button>
       <div id="teamChangeContainer" style="margin-top: 1rem;"></div>
       
     </div>
@@ -1209,62 +1323,89 @@ if (existingBox) {
 
  
 function showNonMemberInput(select) {
-  // 이미 입력창이 있으면 제거
+  // 기존 입력창 제거
   const existing = document.getElementById("nonMemberInputBox");
   if (existing) existing.remove();
 
+  // 외부 컨테이너 div
   const box = document.createElement("div");
   box.id = "nonMemberInputBox";
-  box.style.marginTop = "1rem";
+  box.style.marginTop = "0.5rem";                 // ✅ 위 콤보박스와 간격 확보
   box.style.display = "flex";
-  box.style.gap = "10px";
-  box.style.alignItems = "center";
-  box.style.flexDirection = "column";
+  box.style.flexDirection = "column";           // ✅ 세로 정렬
+  box.style.alignItems = "flex-start";
   box.style.width = "100%";
   box.style.maxWidth = "500px";
+  box.style.gap = "0.5rem";
 
+  // 비회원 이름 입력
   const input = document.createElement("input");
   input.placeholder = "비회원 성명 입력";
-  input.style.fontSize = "1.1rem";
+  input.style.fontSize = "1rem";
   input.style.padding = "0.4rem";
-  input.style.width = "160px";
+  input.style.height = "38px";
+  input.style.width = "50%";         // 유지하면서도
+  input.style.maxWidth = "180px";     // ✅ 최대 너비 제한 추가
 
+  // 저장 버튼
   const saveBtn = document.createElement("button");
   saveBtn.textContent = "저장";
+  saveBtn.style.height = "38px";
+  saveBtn.style.fontSize = "1rem";
+  saveBtn.style.padding = "0.5rem 1rem";
   saveBtn.onclick = () => {
     const name = input.value.trim();
     if (!name) {
       alert("이름을 입력하세요.");
       return;
     }
-    if (selectedNames.includes(name)) {
+
+    const finalName = `(용) ${name}`;
+    if (selectedNames.includes(finalName)) {
       alert("이미 등록된 이름입니다.");
       return;
     }
-    selectedNames.push(name);
+
+    selectedNames.push(finalName);
     renderSelectedTable();
     select.value = "";
     box.remove();
   };
 
+  // 취소 버튼
   const cancelBtn = document.createElement("button");
   cancelBtn.textContent = "취소";
+  cancelBtn.style.height = "38px";
+  cancelBtn.style.fontSize = "1rem";
+  cancelBtn.style.padding = "0.5rem 1rem";
   cancelBtn.onclick = () => {
     select.value = "";
     box.remove();
   };
 
-  box.appendChild(input);
-  box.appendChild(saveBtn);
-  box.appendChild(cancelBtn);
+  // 버튼 가로 배치
+  const buttonRow = document.createElement("div");
+  buttonRow.style.display = "flex";
+  buttonRow.style.gap = "10px";
+  buttonRow.appendChild(saveBtn);
+  buttonRow.appendChild(cancelBtn);
 
-  // select 바로 아래에 삽입
-  select.parentNode.insertBefore(box, select.nextSibling);
+  // 구성 요소 삽입
+  box.appendChild(input);
+  box.appendChild(buttonRow);
+
+  // ✅ select 콤보상자와 중간 삽입 버튼 사이에 위치하도록 명확한 부모에 추가
+  const container = document.getElementById("attendanceList"); // 또는 적절한 wrapper
+  const wrapper = select.closest("div");  // 비회원 추가 버튼을 감싼 div
+if (wrapper) {
+  wrapper.insertAdjacentElement("afterend", box);  // 바로 아래 삽입
 }
+}
+
 
 function showMiddleInsertForm() {
   const container = document.getElementById("attendanceList");
-  
+
   // 이전 삽입창 제거
   const existing = document.getElementById("middleInsertBox");
   if (existing) existing.remove();
@@ -1278,14 +1419,13 @@ function showMiddleInsertForm() {
   box.style.border = "1px solid #ccc";
   box.style.borderRadius = "8px";
   box.style.display = "flex";
-  box.style.gap = "10px";
-  box.style.alignItems = "center";
-  box.style.flexWrap = "wrap";
-  box.style.flexDirection = "column";   // 아래줄로 나오게
-  box.style.width = "100%";             // 부모 너비 전체 사용
-  box.style.maxWidth = "500px";         // 모바일에서 안정적 너비
+  box.style.flexDirection = "column";         // ✅ 줄바꿈 강제
+  box.style.alignItems = "flex-start";
+  box.style.gap = "0.5rem";
+  box.style.width = "100%";
+  box.style.maxWidth = "500px";
 
-  // 성명 선택 드롭다운
+  // 성명 선택
   const nameSelect = document.createElement("select");
   nameSelect.id = "middleInsertName";
   nameSelect.classList.add("name-select");
@@ -1302,18 +1442,14 @@ function showMiddleInsertForm() {
     if (selectedNames.includes(key)) return;
 
     const isDuplicate = memberList.filter(m => m.name === member.name).length > 1;
-
     const option = document.createElement("option");
     option.value = key;
-    option.textContent = isDuplicate && member.team
-      ? `${member.name}(${member.team})`
-      : member.name;
+    option.textContent = isDuplicate && member.team ? `${member.name}(${member.team})` : member.name;
 
     nameSelect.appendChild(option);
     addedCount++;
   });
 
-  // 선택 가능한 이름이 없을 경우 안내 옵션 추가
   if (addedCount === 0) {
     const noticeOption = document.createElement("option");
     noticeOption.disabled = true;
@@ -1327,11 +1463,11 @@ function showMiddleInsertForm() {
   nonMemberOption.textContent = "➕ 비회원 추가";
   nameSelect.appendChild(nonMemberOption);
 
-  // 등수 선택 드롭다운
+  // 등수 선택
   const rankSelect = document.createElement("select");
   rankSelect.id = "middleInsertRank";
   rankSelect.style.fontSize = "1.1rem";
-  rankSelect.style.height = "38px";
+  rankSelect.style.height = "43px";
   for (let i = 1; i <= selectedNames.length + 1; i++) {
     const option = document.createElement("option");
     option.value = i;
@@ -1342,9 +1478,6 @@ function showMiddleInsertForm() {
   // 저장 버튼
   const saveBtn = document.createElement("button");
   saveBtn.textContent = "저장";
-  saveBtn.style.display = "flex";
-  saveBtn.style.alignItems = "center";
-  saveBtn.style.justifyContent = "center";
   saveBtn.style.fontSize = "1.1rem";
   saveBtn.style.height = "38px";
   saveBtn.style.padding = "0.5rem 1rem";
@@ -1371,55 +1504,83 @@ function showMiddleInsertForm() {
   // 닫기 버튼
   const closeBtn = document.createElement("button");
   closeBtn.textContent = "닫기";
-  closeBtn.style.display = "flex";
-  closeBtn.style.alignItems = "center";
-  closeBtn.style.justifyContent = "center";
   closeBtn.style.fontSize = "1.1rem";
   closeBtn.style.height = "38px";
+  closeBtn.style.padding = "0.5rem 1rem";
   closeBtn.onclick = () => box.remove();
+
+  // 버튼 가로 정렬
+  const bottomRow = document.createElement("div");
+bottomRow.style.display = "flex";
+bottomRow.style.gap = "10px";
+bottomRow.style.alignItems = "center";
+
+// ✅ 등 콤보박스, 저장, 닫기 모두 여기에 넣음
+bottomRow.appendChild(rankSelect);
+bottomRow.appendChild(saveBtn);
+bottomRow.appendChild(closeBtn);
 
   // 구성 요소 추가
   box.appendChild(nameSelect);
-  box.appendChild(rankSelect);
-  box.appendChild(saveBtn);
-  box.appendChild(closeBtn);
+  box.appendChild(bottomRow);
 
-  // 삽입 위치: 중간 삽입 버튼 아래
+
+  // ✅ 삽입 위치: 중간 삽입 버튼(div) 아래에 줄바꿈으로 삽입
   const insertBtn = document.getElementById("middleInsertButton");
-  if (insertBtn) {
-    insertBtn.insertAdjacentElement("afterend", box);
+  const wrapper = insertBtn.closest("div");
+  if (wrapper) {
+    wrapper.insertAdjacentElement("afterend", box);
   } else {
     container.appendChild(box);
   }
 }
 
 function renderSelectedTable() {
+  const table = document.getElementById("selectedTable");
 
-  let table = document.getElementById("selectedTable");
+  if (!table) {
+    console.error("❌ selectedTable 테이블이 존재하지 않습니다.");
+    return;
+  }
 
-if (!table) {
-  console.error("❌ selectedTable 테이블이 존재하지 않습니다.");
-  return;
-}
-table.classList.toggle("control-mode-active", reorderMode || deleteMode);
+  table.classList.toggle("control-mode-active", reorderMode || deleteMode);
 
-let tbody = table.querySelector("tbody");
-if (!tbody) {
-  tbody = document.createElement("tbody");
-  table.appendChild(tbody);
-}
-tbody.innerHTML = "";  // 기존 내용 초기화
-  
-  
+  // ✅ 헤더 동적 생성
+  let thead = table.querySelector("thead");
+  if (!thead) {
+    thead = document.createElement("thead");
+    table.appendChild(thead);
+  }
+  thead.innerHTML = "";
+
+  const headerRow = document.createElement("tr");
+  ["순", "성명", (reorderMode || deleteMode) ? "조작" : "지각"].forEach(text => {
+    const th = document.createElement("th");
+    th.textContent = text;
+    th.style.textAlign = "center";
+    headerRow.appendChild(th);
+  });
+  thead.appendChild(headerRow);
+
+  // ✅ tbody 준비
+  let tbody = table.querySelector("tbody");
+  if (!tbody) {
+    tbody = document.createElement("tbody");
+    table.appendChild(tbody);
+  }
+  tbody.innerHTML = "";
+
   selectedNames.forEach((fullKey, idx) => {
     const row = document.createElement("tr");
     row.style.fontSize = "1.3rem";
     row.style.border = "1px solid #ddd";
 
+    // 순번 열
     const rankTd = document.createElement("td");
     rankTd.textContent = `${idx + 1}`;
     rankTd.style.textAlign = "center";
 
+    // 성명 열
     const nameTd = document.createElement("td");
     nameTd.style.textAlign = "center";
     const [name, team] = fullKey.split("__");
@@ -1429,8 +1590,11 @@ tbody.innerHTML = "";  // 기존 내용 초기화
     nameSpan.textContent = displayName;
     nameTd.appendChild(nameSpan);
 
+    // 지각 열 (기본 상태에서만 표시)
     const lateTd = document.createElement("td");
     lateTd.style.textAlign = "center";
+    lateTd.style.display = (reorderMode || deleteMode) ? "none" : "table-cell";
+
     const lateCheck = document.createElement("input");
     lateCheck.type = "checkbox";
     lateCheck.checked = lateStatus[fullKey] || false;
@@ -1443,16 +1607,19 @@ tbody.innerHTML = "";  // 기존 내용 초기화
     };
     lateTd.appendChild(lateCheck);
 
+    // 조작 열 (순서 변경 or 삭제 모드에서만 표시)
     const controlTd = document.createElement("td");
     controlTd.classList.add("control-cell");
     controlTd.style.textAlign = "center";
+    controlTd.style.display = (reorderMode || deleteMode) ? "table-cell" : "none";
 
+    // 순서 변경 버튼
     const upBtn = document.createElement("button");
     upBtn.textContent = "▲";
-    upBtn.style.marginRight = "2px";
+    upBtn.style.marginLeft = "6px";
+    upBtn.style.marginRight = "10px";
     upBtn.style.fontSize = "0.8rem";
     upBtn.style.padding = "1px 5px";
-    upBtn.style.marginLeft = "6px";
     upBtn.onclick = () => {
       if (idx === 0) return;
       [selectedNames[idx - 1], selectedNames[idx]] = [selectedNames[idx], selectedNames[idx - 1]];
@@ -1461,7 +1628,6 @@ tbody.innerHTML = "";  // 기존 내용 초기화
 
     const downBtn = document.createElement("button");
     downBtn.textContent = "▼";
-    downBtn.style.marginRight = "8px";
     downBtn.style.fontSize = "0.8rem";
     downBtn.style.padding = "1px 5px";
     downBtn.onclick = () => {
@@ -1470,37 +1636,41 @@ tbody.innerHTML = "";  // 기존 내용 초기화
       renderSelectedTable();
     };
 
+    // 삭제 버튼
     const delBtn = document.createElement("button");
     delBtn.textContent = "삭제";
     delBtn.style.fontSize = "0.8rem";
     delBtn.style.lineHeight = "1";
     delBtn.style.padding = "0.2rem 0.5rem";
-    delBtn.style.marginLeft = "0px";
     delBtn.onclick = () => {
-  selectedNames.splice(idx, 1);
-  renderSelectedTable();
-};
+      selectedNames.splice(idx, 1);
+      renderSelectedTable();
+    };
 
-
+    // 조작 버튼 삽입
     if (reorderMode) {
-      controlTd.appendChild(upBtn);
       controlTd.appendChild(downBtn);
+      controlTd.appendChild(upBtn);
     }
     if (deleteMode) {
       controlTd.appendChild(delBtn);
     }
 
-
+    // 행 조립
     row.appendChild(rankTd);
     row.appendChild(nameTd);
     row.appendChild(lateTd);
     row.appendChild(controlTd);
     tbody.appendChild(row);
+
+    // 마지막 줄 스크롤
     if (idx === selectedNames.length - 1) {
-    row.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }
+      row.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
   });
 }
+
+
 
 function renderNameDropdown(selectId = "singleNameSelect", inputId = "nonMemberInput") {
   const select = document.getElementById(selectId);
@@ -1841,16 +2011,11 @@ function saveAttendance() {
     });
     updateMatchCounts();
 
-    // ✅ 경기 편성 1경기 탭 추가
-  const tabContainer = document.getElementById("tabButtons");
-  if (!document.getElementById("matchTabButton")) {
-    const matchBtn = document.createElement("button");
-    matchBtn.id = "matchTabButton";
-    matchBtn.textContent = "경기 편성\n1경기";
-    matchBtn.setAttribute("onclick", "showTab('matchTab')");
-    tabContainer.insertBefore(matchBtn, tabContainer.children[1]); // 회원관리 앞에 삽입
-  }
-
+// ✅ 경기 편성 1경기 탭 버튼 보이게 하기
+const matchTabBtn = document.getElementById("matchTabButton");
+if (matchTabBtn) {
+  matchTabBtn.style.display = "inline-block";
+}
 }
 
 
@@ -2774,11 +2939,10 @@ function showSelectionModal() {
   const content = document.getElementById("selectionContent");
   content.innerHTML = "";
 
-  // ✅ 레이아웃 설정 (3개 버튼 가로 배치)
   content.style.display = "flex";
   content.style.flexWrap = "wrap";
   content.style.justifyContent = "center";
-  content.style.gap = "0.6rem";
+  content.style.gap = "0.8rem";
 
   if (!openedEnvelopes || openedEnvelopes.length === 0) {
     content.innerHTML = `<p style="font-size:1.2rem; color: red;">선택 가능한 쪽지가 없습니다.</p>`;
@@ -2788,7 +2952,6 @@ function showSelectionModal() {
   const player = voteOrder[currentPlayerIndex];
   const playerName = player?.name || "선택자";
 
-  // ✅ 선택자 이름은 별도 줄에 표시
   const nameDiv = document.createElement("div");
   nameDiv.textContent = `👤 ${playerName} 선생님 선택 중`;
   nameDiv.style.fontSize = "1.1rem";
@@ -2798,47 +2961,64 @@ function showSelectionModal() {
   nameDiv.style.textAlign = "center";
   content.appendChild(nameDiv);
 
-  openedEnvelopes.forEach((item) => {
+  // ✅ 여기서 idx도 함께 받도록 수정
+  openedEnvelopes.forEach((item, idx) => {
     const value = item?.value;
+    if (typeof value !== "string") return;
 
-    if (typeof value !== "string") {
-      console.warn("⚠️ 잘못된 쪽지 항목:", item);
-      return; // 이 항목 건너뛰기
-    }
+    const match = value.match(/^(A팀|B팀|C팀)?\s*(.*)$/);
+    const teamKor = match?.[1] || "";
+    const position = match?.[2] || value;
+    const team = teamKor.replace("팀", "");
 
     const btn = document.createElement("button");
-    btn.innerHTML = value.replace(" ", "<br>");
+    btn.className = "diagonal-box";
 
-    // ✅ 팀별 배경색
-    if (value.includes("A팀")) btn.style.backgroundColor = "#fff9c4";
-    else if (value.includes("B팀")) btn.style.backgroundColor = "#ffe0b2";
-    else if (value.includes("C팀")) btn.style.backgroundColor = "#e1f5fe";
-    else btn.style.backgroundColor = "#ffffff";
+    // ✅ 포지션별 이모지 설정
+    let icon = "";
+    if (position === "GK") icon = "🥅";
+    else if (position === "DF") icon = "🧱";
+    else if (position === "MF") icon = "🏃🏿";
+    else if (position === "FW") icon = "⚽";
+    else if (position === "REF") icon = "⚖️";
+    else if (position === "휴식") icon = "💤";
 
-    // ✅ 공통 스타일
-    Object.assign(btn.style, {
-      padding: "1rem",
-      fontSize: "1rem",
-      borderRadius: "8px",
-      border: "1px solid #ccc",
-      whiteSpace: "pre-line",
-      cursor: "pointer",
-      boxSizing: "border-box",
-      flex: "1 1 calc(30% - 0.6rem)",
-      maxWidth: "100px",
-      textAlign: "center"
-    });
+    btn.setAttribute("data-icon", icon);
+
+    // ✅ 애니메이션 순차 효과
+    btn.style.animationDelay = `${idx * 0.1}s`;
 
     btn.onclick = () => {
       confirmSelection(item.index);
       closeSelectionModal();
     };
 
+    if (team === "A") btn.style.backgroundColor = "#fff9c4";
+    else if (team === "B") btn.style.backgroundColor = "#ffe0b2";
+    else if (team === "C") btn.style.backgroundColor = "#e1f5fe";
+    else btn.style.backgroundColor = "#ffffff";
+
+    const teamDiv = document.createElement("div");
+    teamDiv.className = "team";
+    teamDiv.textContent = team;
+    teamDiv.style.fontSize = "1.8rem";     // ✅ 팀 글씨 키움
+    teamDiv.style.fontWeight = "bold";
+
+    const posDiv = document.createElement("div");
+    posDiv.className = "position";
+    posDiv.textContent = position;
+    posDiv.style.fontSize = "1.4rem";      // ✅ 포지션 더 크게
+    posDiv.style.fontWeight = "bold";
+
+    btn.appendChild(teamDiv);
+    btn.appendChild(posDiv);
     content.appendChild(btn);
   });
 
   document.getElementById("selectionModal").style.display = "block";
 }
+
+
 
 function closeSelectionModal() {
   document.getElementById("selectionModal").style.display = "none";
@@ -2910,18 +3090,27 @@ function confirmSelection(index) {
 
   if (currentPlayerIndex >= voteOrder.length) {
   console.log("✅ 모든 쪽지 선택 완료");
+  
+ window.finalTeamResults = {
+  A: sortTeamByCustomRule(Object.entries(confirmedSelections.A).map(([name, position]) => ({ name, position }))),
+  B: sortTeamByCustomRule(Object.entries(confirmedSelections.B).map(([name, position]) => ({ name, position }))),
+  C: sortTeamByCustomRule(Object.entries(confirmedSelections.C).map(([name, position]) => ({ name, position })))
+};
 
-  window.finalTeamResults = {
-    A: Object.entries(confirmedSelections.A).map(([name, position]) => ({ name, position })),
-    B: Object.entries(confirmedSelections.B).map(([name, position]) => ({ name, position })),
-    C: Object.entries(confirmedSelections.C).map(([name, position]) => ({ name, position }))
-  };
   localStorage.setItem("finalTeamResults", JSON.stringify(window.finalTeamResults));
 
-  switchTab('teamTab');
-  // ✅ 경기 편성 2경기 탭도 자동으로 보이게 설정
-  const tab2 = document.getElementById("matchSetup2");
-  if (tab2) tab2.style.display = "block";
+ // ✅ 경기 편성 2경기 탭도 자동으로 보이게 설정
+  const teamTabBtn = document.getElementById("teamTabButton");
+if (teamTabBtn) {
+  teamTabBtn.style.display = "inline-block";
+}
+
+const matchSetup2Btn = document.getElementById("matchSetup2Button");
+if (matchSetup2Btn) {
+  matchSetup2Btn.style.display = "inline-block";
+}
+  showTab('teamTab');  // ✅ 버튼 강조, active 클래스 반영 포함
+
   displayFinalTeamResults();
   closeEnvelopeModal();
 } else {
@@ -2988,7 +3177,7 @@ function displayFinalTeamResults() {
 
   // 팀 테이블 생성 함수
   const createTeamBox = (team, members) => {
-    const sorted = sortTeamMembers(members);
+    const sorted = members;
 
     const wrapper = document.createElement("div");
     wrapper.className = "team-box";
@@ -3007,9 +3196,12 @@ function displayFinalTeamResults() {
     const table = document.createElement("table");
     table.style.width = "100%";
     table.style.borderCollapse = "collapse";
-    table.style.background = "white";
 
-    const thead = document.createElement("thead");
+    // ✅ 내부 배경색만 설정
+    if (team === "A") table.style.backgroundColor = "#fff9c4";
+    else if (team === "B") table.style.backgroundColor = "#ffe0b2";
+    else if (team === "C") table.style.backgroundColor = "#bbdefb";
+        const thead = document.createElement("thead");
     thead.innerHTML = `<tr><th>순</th><th>성명</th><th>포지션</th></tr>`;
     table.appendChild(thead);
 
@@ -3246,20 +3438,36 @@ function shuffle(array) {
 
 function shuffleAvailableNotes() {
   if (!originalNotes || originalNotes.length === 0) {
-    console.warn("⚠️ originalNotes가 비어 있어 셔플할 수 없습니다.");
-    return;
+    alert("❌ originalNotes가 비어 있어 셔플할 수 없습니다.");
+    throw new Error("originalNotes is empty");
   }
 
   const allNotes = [...originalNotes];
-  const usedValues = fixedNotes.map(f => f.value);
-  const floating = allNotes.filter(note => !usedValues.includes(note));
+  const noteCountMap = {}; // ✅ 쪽지별 개수 추적
 
-  // ✅ 부족할 경우 '휴식' 쪽지 추가
+  allNotes.forEach(note => {
+    noteCountMap[note] = (noteCountMap[note] || 0) + 1;
+  });
+
+  fixedNotes.forEach(f => {
+    if (noteCountMap[f.value]) {
+      noteCountMap[f.value] -= 1;
+    }
+  });
+
+  // ✅ 남은 유동 쪽지 추출
+  const floating = [];
+  Object.entries(noteCountMap).forEach(([note, count]) => {
+    for (let i = 0; i < count; i++) {
+      floating.push(note);
+    }
+  });
+
   const expectedCount = allNotes.length - fixedNotes.length;
   if (floating.length < expectedCount) {
     const shortage = expectedCount - floating.length;
-    console.warn(`⚠️ 셔플할 유동 쪽지가 부족하여 '휴식' ${shortage}개 보완`);
-    floating.push(...Array(shortage).fill("휴식"));
+    alert(`❌ 오류: 셔플할 유동 쪽지가 부족합니다 (${shortage}개 누락)\n쪽지 중복 처리 문제일 수 있습니다.`);
+    throw new Error("유동 쪽지 부족");
   }
 
   const shuffledFloating = shuffle(floating);
@@ -3274,12 +3482,13 @@ function shuffleAvailableNotes() {
     } else if (floatIdx < shuffledFloating.length) {
       shuffledNotes[i] = shuffledFloating[floatIdx++];
     } else {
-      // 이 블록은 절대 오면 안 되지만 방어적으로 유지
-      console.warn(`⚠️ 쪽지 index ${i}에 값이 부족합니다. fallback='휴식'`);
-      shuffledNotes[i] = "휴식";
+      shuffledNotes[i] = "오류";
     }
   }
+
+  console.log("✅ shuffledNotes 최종:", shuffledNotes);
 }
+
 
 
 function cancelPositionDraw() {
@@ -3335,39 +3544,43 @@ function parseFormation(team) {
   return { df, mf, fw, starter };
 }
 
-function generateTeamNotes(teamName, df, mf, fw, starter) {
+function generateTeamNotes(teamName, df, mf, fw, starter, total) {
   const notes = [];
 
-  const teamKey = teamName.replace("팀", "");  // A팀 → A
-  const teamPlayers = finalTeamResults?.[teamKey] || [];
-  const total = teamPlayers.length;
-
-  if (total === 0) {
-    console.warn(`⚠️ ${teamName}은 인원이 0명입니다. 쪽지 없음`);
+  if (!total || total === 0) {
+    console.warn(`⚠️ ${teamName} 인원이 없습니다. 쪽지 생성 생략`);
     return [];
   }
 
-  // ✅ 포지션 쪽지
+  // ✅ 포지션 쪽지 생성
   notes.push(`${teamName} GK`);
   notes.push(...Array(df).fill(`${teamName} DF`));
   notes.push(...Array(mf).fill(`${teamName} MF`));
   notes.push(...Array(fw).fill(`${teamName} FW`));
 
-  // ✅ 선발 외 인원 계산
   const used = 1 + df + mf + fw;
   const nonStarters = total - used;
 
   if (nonStarters > 0) notes.push(`${teamName} 심판`);
   if (nonStarters > 1) notes.push(...Array(nonStarters - 1).fill(`${teamName} 휴식`));
 
-  console.log(`🧾 ${teamName} 총 인원: ${total}, 포지션: ${used}, 심판/휴식: ${total - used}`);
+  console.log(`🧾 ${teamName} 총 인원: ${total}, 포지션: ${used}, 심판/휴식: ${nonStarters}`);
   return notes;
 }
+
 
 function drawMatchPositions(team = null) {
   try {
     console.log(`🎯 drawMatchPositions 호출됨 (team=${team ?? "전체"})`);
-    switchTab('matchTab');
+
+    // ✅ 경기 편성 1경기 탭 버튼 보이기
+    const matchTabBtn = document.getElementById("matchTabButton");
+    if (matchTabBtn) {
+      matchTabBtn.style.display = "inline-block";
+    }
+
+    // ✅ 탭 전환
+    showTab('matchTab');
 
     // ✅ 초기화
     currentPlayerIndex = 0;
@@ -3383,31 +3596,28 @@ function drawMatchPositions(team = null) {
       return;
     }
 
-    // ✅ 반드시 전역 voteOrder 먼저 설정
     setupVotingOrder(team);
-
     let notes = [];
 
     if (team === null) {
       assignMatchTeams();
-
       const parsedA = parseFormation('A');
       const parsedB = parseFormation('B');
 
       if (!parsedA || !parsedB) {
-        alert("포메이션 설정이 올바르지 않습니다. A팀과 B팀의 포메이션을 다시 확인해주세요.");
+        alert("포지션 설정 오류: A팀과 B팀을 확인하세요.");
         return;
       }
 
-      const { df: dfA, mf: mfA, fw: fwA, starter: starterA } = parsedA;
-      const { df: dfB, mf: mfB, fw: fwB, starter: starterB } = parsedB;
+      var { df: dfA, mf: mfA, fw: fwA, starter: starterA } = parsedA;
+      var { df: dfB, mf: mfB, fw: fwB, starter: starterB } = parsedB;
 
-      notes = generateAllNotes(voteOrder.length);  // ✅ let 없이 사용
+      notes = generateAllNotes(voteOrder.length);
     } else {
       const korTeamName = `${team}팀`;
       const parsed = parseFormation(team);
       if (!parsed) {
-        alert(`${team}팀 포지션 설정이 올바르지 않습니다.`);
+        alert(`${team}팀 포지션 설정 오류`);
         return;
       }
 
@@ -3415,19 +3625,16 @@ function drawMatchPositions(team = null) {
       notes.push(...generateTeamNotes(korTeamName, df, mf, fw, starter));
     }
 
-    // ✅ 부족 시 예비 쪽지 추가
     if (notes.length < voteOrder.length) {
       const diff = voteOrder.length - notes.length;
-      console.warn(`⚠️ 생성된 쪽지 수 부족! ${notes.length}개 / 필요 ${voteOrder.length}개 → ${diff}개 추가`);
+      console.warn(`⚠️ 쪽지 부족: ${diff}개 예비 추가`);
       notes.push(...Array(diff).fill("예비"));
     }
 
-    // ✅ 셔플 및 반영
     window.originalNotes = shuffle(notes);
     shuffleAvailableNotes();
-    console.log("✅ 실제 shuffledNotes 생성 결과:", window.shuffledNotes);
+    console.log("✅ shuffledNotes:", window.shuffledNotes);
 
-    // ✅ 첫 번째 플레이어 쪽지 뽑기 시작
     setTimeout(() => {
       pickedIndexes = [];
       renderEnvelopes();
@@ -3439,6 +3646,7 @@ function drawMatchPositions(team = null) {
     console.warn("❌ drawMatchPositions 중단:", err.message);
     console.log("🧪 에러 객체:", err);
   }
+
   console.log("✅ A팀 인원:", finalTeamResults?.A?.length || 0);
   console.log("✅ B팀 인원:", finalTeamResults?.B?.length || 0);
   console.log("✅ C팀 인원:", finalTeamResults?.C?.length || 0);
@@ -3549,28 +3757,34 @@ function generateAllNotes() {
   const starterA = parseInt(document.getElementById("matchAStarter").value || "0");
   const starterB = parseInt(document.getElementById("matchBStarter").value || "0");
 
+  // ✅ 팀별 인원 수는 finalTeamResults 기준으로 정확히 계산
+  const countA = finalTeamResults?.A?.length || 0;
+  const countB = finalTeamResults?.B?.length || 0;
+  const countC = finalTeamResults?.C?.length || 0;
+
+  // ✅ A/B 팀 포지션 쪽지 생성
   const notes = [
-    ...generateTeamNotes("A팀", dfA, mfA, fwA, starterA),
-    ...generateTeamNotes("B팀", dfB, mfB, fwB, starterB)
+    ...generateTeamNotes("A팀", dfA, mfA, fwA, starterA, countA),
+    ...generateTeamNotes("B팀", dfB, mfB, fwB, starterB, countB)
   ];
 
-  const teamC = finalTeamResults?.["C"] || [];
-  if (teamC.length > 0) {
-    notes.push(...Array(teamC.length).fill("C팀"));
-    console.log(`🧾 C팀 쪽지 ${teamC.length}개 추가`);
+  // ✅ C팀 쪽지 처리
+  if (countC > 0) {
+    notes.push(...Array(countC).fill("C팀"));
+    console.log(`🧾 C팀 쪽지 ${countC}개 추가`);
   }
 
-  // ✅ 부족한 경우 "휴식"으로 보완
+  // ✅ 부족 시 오류 처리
   if (notes.length < voteOrder.length) {
     const diff = voteOrder.length - notes.length;
-    console.warn(`⚠️ 쪽지 수 부족! → ${diff}개 '휴식' 쪽지 추가`);
-    notes.push(...Array(diff).fill("휴식"));
+    console.error(`❌ 쪽지 수 부족! → ${diff}개가 누락됨 (check 포지션 입력 또는 팀 인원수)`);
+    alert(`❌ 쪽지 수가 부족합니다. (${diff}개 누락)\n포지션 설정 또는 선발 인원수를 다시 확인해주세요.`);
+    return []; // 아예 중단
   }
 
   console.log(`📦 전체 쪽지 수: ${notes.length} / 투표자 수: ${voteOrder.length}`);
   return notes;
 }
-
 
 
 function startTeamDraw(team) {
@@ -3643,6 +3857,267 @@ function renderTeamDrawUI(team) {
 };
   container.appendChild(drawBtn);
 }
+function sortTeamByCustomRule(teamPlayers) {
+  const nameToOrder = {};
+  voteOrder.forEach((player, idx) => {
+    nameToOrder[player.name] = idx;
+  });
+
+  // 🎯 팀 내 출석 순 1등
+  const teamTopName = [...teamPlayers].sort((a, b) => nameToOrder[a.name] - nameToOrder[b.name])[0]?.name;
+
+  return teamPlayers.sort((a, b) => {
+    const rankA = getRank(a);
+    const rankB = getRank(b);
+    if (rankA !== rankB) return rankA - rankB;
+    return nameToOrder[a.name] - nameToOrder[b.name]; // 같은 그룹은 출석 순
+  });
+
+  function getRank(player) {
+    if (player.name === teamTopName) return 0;                      // 팀 내 출석 1위
+    if (player.position.includes("심판")) return 1;
+    if (player.position.includes("휴식")) return 2;
+    if (player.position === "GK") return 3;
+    return 4;
+  }
+}
+function showTeamAddForm() {
+  const area = document.getElementById("teamChangeContainer");
+  const hasCTeam = finalTeamResults?.C && finalTeamResults.C.length > 0;
+
+  area.innerHTML = `
+    <div>
+      <label>성명: 
+        <select id="addNameSelect" onchange="toggleNonMemberInput()">
+          ${memberList.map(m => `<option value="${m.name}">${m.name}</option>`).join("")}
+          <option value="비회원">비회원 추가</option>
+        </select>
+        <input type="text" id="nonMemberInput" placeholder="비회원 이름 입력" style="display:none; margin-left:0.5rem;" />
+      </label>
+      <label>팀: 
+        <select id="addTeamSelect">
+          <option value="A">A팀</option>
+          <option value="B">B팀</option>
+          ${hasCTeam ? '<option value="C">C팀</option>' : ''}
+        </select>
+      </label>
+      <button onclick="saveTeamAddition()">저장</button>
+      <button onclick="clearTeamChangeForm()">닫기</button>
+    </div>
+  `;
+}
+function toggleNonMemberInput() {
+  const select = document.getElementById("addNameSelect");
+  const input = document.getElementById("nonMemberInput");
+  if (select.value === "비회원") {
+    input.style.display = "inline-block";
+  } else {
+    input.style.display = "none";
+  }
+}
+
+
+function showTeamChangeForm() {
+  const area = document.getElementById("teamChangeContainer");
+  const allNames = Object.values(finalTeamResults).flat().map(p => p.name);
+
+  const hasCTeam = finalTeamResults?.C && finalTeamResults.C.length > 0;
+
+  area.innerHTML = `
+    <div style="margin-top: 0.5rem;">
+      <label>이름: 
+        <select id="moveNameSelect">
+          ${allNames.map(n => `<option value="${n}">${n}</option>`).join("")}
+        </select>
+      </label>
+      <label>옮길 팀: 
+        <select id="moveTeamSelect">
+          <option value="A">A팀</option>
+          <option value="B">B팀</option>
+          ${hasCTeam ? '<option value="C">C팀</option>' : ''}
+        </select>
+      </label>
+      <button onclick="movePlayerToTeam()">저장</button>
+      <button onclick="clearTeamChangeForm()">닫기</button>
+    </div>
+  `;
+}
+
+function showLeaveForm() {
+  const area = document.getElementById("teamChangeContainer");
+  const allNames = Object.values(finalTeamResults).flat().map(p => p.name);
+  area.innerHTML = `
+    <div style="margin-top: 0.5rem;">
+      <label>성명: 
+        <select id="leaveNameSelect">
+          ${allNames.map(n => `<option value="${n}">${n}</option>`).join("")}
+        </select>
+      </label>
+      <button onclick="processLeave()">조퇴 처리</button>
+      <button onclick="clearTeamChangeForm()">닫기</button>
+    </div>
+  `;
+}
+function clearTeamChangeForm() {
+  const area = document.getElementById("teamChangeContainer");
+  if (area) area.innerHTML = "";
+}
+function saveTeamAddition() {
+  let name = document.getElementById("addNameSelect").value;
+  const team = document.getElementById("addTeamSelect").value;
+
+  if (name === "비회원") {
+  const customInput = document.getElementById("nonMemberInput").value.trim();
+  if (!customInput) return alert("비회원 이름을 입력하세요.");
+  name = `(용) ${customInput}`;  // ✅ 여기서 앞에 '(용) ' 붙임
+  } 
+
+
+  if (!name || !team) {
+    alert("이름과 팀을 모두 선택하세요.");
+    return;
+  }
+
+  if (!window.finalTeamResults) window.finalTeamResults = {};
+  if (!finalTeamResults[team]) finalTeamResults[team] = [];
+
+  finalTeamResults[team].push({ name, position: "지각" });
+  localStorage.setItem("finalTeamResults", JSON.stringify(finalTeamResults));
+
+  // 회원인 경우만 출석 처리
+  const member = memberList.find(m => m.name === name);
+  if (member) {
+    const year = document.getElementById("yearSelect").value;
+    const month = document.getElementById("monthSelect").value.padStart(2, '0');
+    const day = document.getElementById("daySelect").value.padStart(2, '0');
+    const dateKey = `${year}-${month}-${day}`;
+
+    if (!window.attendanceHistoryData) window.attendanceHistoryData = {};
+    if (!attendanceHistoryData[dateKey]) attendanceHistoryData[dateKey] = [];
+
+    const already = attendanceHistoryData[dateKey].find(e => e.name === name);
+    if (!already) {
+      attendanceHistoryData[dateKey].push({
+        name,
+        late: true,
+        leave: false,
+        score: 5
+      });
+    }
+
+    localStorage.setItem("attendanceHistoryData", JSON.stringify(attendanceHistoryData));
+  }
+
+  alert(`✅ ${name} 선수가 ${team}팀에 지각으로 추가되었습니다.`);
+  clearTeamChangeForm();
+  displayFinalTeamResults();
+}
+
+function movePlayerToTeam() {
+  const name = document.getElementById("moveNameSelect")?.value;
+  const newTeam = document.getElementById("moveTeamSelect")?.value;
+
+  if (!name || !newTeam) {
+    alert("이름과 팀을 모두 선택하세요.");
+    return;
+  }
+
+  if (!window.finalTeamResults || !finalTeamResults[newTeam]) {
+    alert("⚠️ 팀 데이터가 비정상입니다.");
+    return;
+  }
+
+  // ✅ 출석자 + 추가 인원까지 포함하는 순서
+const extendedOrder = [...voteOrder];
+
+// A/B/C팀에 추가된 인원도 포함
+["A", "B", "C"].forEach(team => {
+  const members = finalTeamResults[team] || [];
+  members.forEach(p => {
+    if (!extendedOrder.find(e => e.name === p.name)) {
+      extendedOrder.push({ name: p.name });
+    }
+  });
+});
+
+// 출석 순서 맵 생성
+const orderMap = {};
+extendedOrder.forEach((p, idx) => {
+  orderMap[p.name] = idx;
+});
+
+  const playerOrder = orderMap[name];
+  if (playerOrder === undefined) {
+    alert("⚠️ 해당 이름이 출석자 명단에 없습니다.");
+    return;
+  }
+
+  // 🔍 기존 포지션 찾기
+  let originalPosition = "지정안됨";
+  for (const team in finalTeamResults) {
+    const found = finalTeamResults[team].find(p => p.name === name);
+    if (found) originalPosition = found.position;
+  }
+
+  // 기존 팀에서 제거
+  for (const team in finalTeamResults) {
+    finalTeamResults[team] = finalTeamResults[team].filter(p => p.name !== name);
+  }
+
+  // 새 팀에 출석순 기준으로 삽입
+  const newPlayer = { name, position: originalPosition };
+  const teamList = finalTeamResults[newTeam];
+  let insertIndex = teamList.findIndex(p => orderMap[p.name] > playerOrder);
+  if (insertIndex === -1) insertIndex = teamList.length;
+  teamList.splice(insertIndex, 0, newPlayer);
+
+  localStorage.setItem("finalTeamResults", JSON.stringify(finalTeamResults));
+  alert(`✅ ${name} 선수가 ${newTeam}팀에 출석 순서 기준으로 이동되었습니다.`);
+  clearTeamChangeForm();
+  displayFinalTeamResults();
+}
+function processLeave() {
+  const name = document.getElementById("leaveNameSelect")?.value;
+  if (!name) return alert("조퇴 처리할 이름을 선택하세요.");
+
+  // ✅ 팀구분 테이블에서 제거
+  for (const team in finalTeamResults) {
+    finalTeamResults[team] = finalTeamResults[team].filter(p => p.name !== name);
+  }
+
+  // ✅ 출석 관리에 조퇴 기록
+  const year = document.getElementById("yearSelect").value;
+  const month = document.getElementById("monthSelect").value.padStart(2, '0');
+  const day = document.getElementById("daySelect").value.padStart(2, '0');
+  const dateKey = `${year}-${month}-${day}`;
+
+  if (!window.attendanceHistoryData) attendanceHistoryData = {};
+  if (!attendanceHistoryData[dateKey]) attendanceHistoryData[dateKey] = [];
+
+  // 기존 기록이 있는지 확인
+  const existing = attendanceHistoryData[dateKey].find(p => p.name === name);
+  if (existing) {
+    existing.leave = true;
+    existing.late = false;
+    existing.score = 5;
+  } else {
+    attendanceHistoryData[dateKey].push({
+      name,
+      late: false,
+      leave: true,
+      score: 5
+    });
+  }
+
+  // ✅ 저장 및 UI 반영
+  localStorage.setItem("finalTeamResults", JSON.stringify(finalTeamResults));
+  localStorage.setItem("attendanceHistoryData", JSON.stringify(attendanceHistoryData));
+  alert(`✅ ${name} 조퇴 처리되었습니다.`);
+  clearTeamChangeForm();
+  displayFinalTeamResults();
+}
+
+
 
 
 window.addEventListener("DOMContentLoaded", () => {
@@ -3710,11 +4185,16 @@ window.addEventListener("DOMContentLoaded", () => {
   height:100vh;
   background:white; /* ✅ 흰색 배경 */
   z-index:9999;
-  flex-direction:column;
-  justify-content:flex-start;
-  align-items:center;
-  overflow:auto;
-">
+
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+
+  overflow-y: auto;
+  overflow-x: hidden;         /* ✅ 가로 스크롤 방지 */
+  box-sizing: border-box;     /* ✅ padding이 너비에 포함되도록 */
+  padding: 1rem;              /* ✅ 안전하게 내부 여백 추가 */
+  ">
 
   <div style="width:100%; max-width:700px; padding:1rem; color:white; text-align:center;">
     <h2 id="drawPlayerInfo" style="font-size:1.5rem; color: black;">👤 현재 플레이어 이름</h2>
