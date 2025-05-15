@@ -196,7 +196,7 @@
       background-color: #f5f5f5;
       border: 1px solid #aaa;
       border-radius: 6px;
-      margin: 1px;                     /* 가로/세로 간격 5px → 절반 적용 */
+      margin: 2px;                     /* 가로/세로 간격 5px → 절반 적용 */
       cursor: pointer;
       transition: transform 0.2s ease-in-out;
     }
@@ -235,7 +235,7 @@
 }
 
     #envelopeArea {
-      display: flex;
+      display: none;
       flex-wrap: wrap;
       justify-content: center;
       gap: 2px;
@@ -254,8 +254,9 @@
     }
     #teamDivisionResult th, #teamDivisionResult td {
       border: 1px solid #ccc;
-      padding: 10px;
+      padding: 6px 8px;  
       text-align: center;
+      font-size: 0.95rem;
     }
     #teamDivisionResult th {
       background-color: #f0f0f0;
@@ -337,10 +338,10 @@
 /* 좌우로 나란히 */
 .row-ab {
   display: flex;
-  flex-wrap: wrap;       /* ✅ 화면이 좁으면 줄 바꿈 */
+  flex-wrap: nowrap;       /* ✅ 화면이 좁으면 줄 바꿈 */
   gap: 0.4rem;
   align-items: flex-start;
-  justify-content: space-between; /* ✅ 여백 제거 */
+  justify-content: flex-start; /* ✅ 여백 제거 */
 }
 
 /* C팀은 A팀 아래 정렬 */
@@ -350,13 +351,14 @@
 }
 
 .team-box {
-  flex: 1 1 48%;;
-  min-width: 48%;
+  flex: 1 1 48%;
+  min-width: 45%;
   max-width: 48%;
-  box-sizing: border-box;
-  padding: 0.3rem;
-  border-radius: 8px;
-  background-color: transparent; /* ✅ 바깥 배경 제거 */
+  background-color: transparent;
+  padding: 0.2rem;
+  border-radius: 0px;
+  box-shadow: none; /* ✅ 그림자 제거 */
+  margin: 0;         /* ✅ 여백 제거 */
 }
 /* C팀은 왼쪽 정렬되도록 */
 .row-c .team-box {
@@ -370,6 +372,7 @@
   border-radius: 8px;
   overflow: hidden;
   font-size: 0.9rem; /* ✅ 글씨 줄이기 */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); /* ✅ 그림자 추가 */
 }
 
 /* 테이블 제목 줄 */
@@ -378,7 +381,7 @@
   font-size: 1rem;
   font-weight: bold;
   text-align: center;
-  margin: 0.4rem 0;
+  margin: 0.2rem 0 0.1rem 0; /* 위 아래 간격 최소화 */
 }
 .control-cell {
   display: none;
@@ -389,7 +392,7 @@
 .diagonal-box {
   position: relative;
   width: 110px;
-  height: 70px;
+  height: 80px;
   border: 1px solid #ccc;
   border-radius: 10px;
   overflow: hidden;
@@ -412,19 +415,29 @@ td, th {
 /* 좌상단: 팀 */
 .diagonal-box .team {
   position: absolute;
-  top: 8px;
-  left: 10px;
-  font-size: 1.4rem;
+  top: 4px;
+  left: 4px;
+  font-size: 1.8rem;
   color: #111;
+  text-shadow: 
+    -1px -1px 0 #fff, 
+     1px -1px 0 #fff, 
+    -1px  1px 0 #fff, 
+     1px  1px 0 #fff; /* ✅ 흰색 테두리 효과 */
 }
 
 /* 우하단: 포지션 */
 .diagonal-box .position {
   position: absolute;
-  bottom: 8px;
-  right: 10px;
-  font-size: 1rem;
-  color: #444;
+  bottom: 4px;
+  right: 4px;
+  font-size: 1.4rem;
+  color: #2e2d2d;
+  text-shadow: 
+    -1px -1px 0 #fff, 
+     1px -1px 0 #fff, 
+    -1px  1px 0 #fff, 
+     1px  1px 0 #fff; /* ✅ 흰색 테두리 효과 */
 }
 
 /* 은은한 배경 효과 */
@@ -614,6 +627,25 @@ td, th {
     </button>
     </div>
     <div id="matchDrawArea" style="margin-top: 2rem;"></div>
+    <!-- 전체 덮는 모달 -->
+    <div id="teamDrawOverlay" style="
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: white;
+      z-index: 9999;
+      overflow-y: auto;
+      padding: 1rem;
+      box-sizing: border-box;
+    ">
+      <div id="teamDrawContent"></div>
+      <div style="text-align: center; margin-top: 1rem;">
+        <button onclick="closeTeamDrawOverlay()" style="padding: 0.5rem 1.2rem; font-size: 1.1rem;">❌ 닫기</button>
+      </div>
+    </div>
   </div>
   
 
@@ -733,13 +765,13 @@ td, th {
     <h2>팀구분 결과</h2>
     <!-- ⛳ 인원 추가 버튼 -->
    <div style="margin-top: 1rem; text-align: center; display: flex; justify-content: center; flex-wrap: wrap; gap: 0.5rem;">
-      <button onclick="showTeamAddForm()" style="padding: 0.5rem 0.9rem; font-size: 1rem;">
+      <button onclick="showTeamAddForm()" style="padding: 0.4rem 0.8rem; font-size: 1rem;">
         ➕ 인원 추가
       </button>
-      <button onclick="showTeamChangeForm()" style="padding: 0.5rem 0.9rem; font-size: 1rem;">
+      <button onclick="showTeamChangeForm()" style="padding: 0.4rem 0.8rem; font-size: 1rem;">
         🔄 팀 변경
       </button>
-        <button onclick="showLeaveForm()" style="padding: 0.5rem 0.9rem; font-size: 1rem;">
+        <button onclick="showLeaveForm()" style="padding: 0.4rem 0.8rem; font-size: 1rem;">
       🚪 조퇴 처리
     </button>
       <div id="teamChangeContainer" style="margin-top: 1rem;"></div>
@@ -750,7 +782,7 @@ td, th {
     <div id="teamAddArea" style="margin-top: 1rem;"></div>
 
     <!-- ⛳ 결과 출력 테이블 -->
-    <div id="teamDivisionResult" style="margin-top: 1rem;"></div>
+    <div id="teamDivisionResult" style="margin-top: 0.3rem;"></div>
   </div>
 
   <div id="memberTab" class="tab">
@@ -1792,8 +1824,7 @@ function updateMatchCounts() {
 function suggestFormation(team) {
   let starter = parseInt(document.getElementById(`match${team}Starter`).value || 0);
 
-  // ✅ 11명 이상일 경우 강제로 11 기준으로 추천 (4-3-3 등)
-  const recommendedKey = (starter >= 11) ? 11 : starter;
+  const recommendedKey = (starter >= 10) ? 10 : starter;
 
   const target = document.getElementById(`suggest${team}`);
   const select = document.getElementById(`formation${team}Select`);
@@ -2146,8 +2177,7 @@ function showAllScores() {
       <thead style="background-color: #eee;">
         <tr>
           <th style="position: sticky; left: 0; background: #eee; z-index: 2;">성명</th>
-          <th style="position: sticky; left: 100px; background: #eee; z-index: 2;">소속</th>
-          <th style="position: sticky; left: 200px; background: #eee; z-index: 2;">총점</th>
+          <th style="position: sticky; left: 100px; background: #eee; z-index: 2;">총점</th>
            ${dates.map(date => `<th style="min-width: 90px;">${date}</th>`).join("")}
         </tr>
       </thead>
@@ -2157,8 +2187,7 @@ function showAllScores() {
   memberScores.forEach(m => {
   html += `<tr>
     <td style="position: sticky; left: 0; background: white; z-index: 1; min-width: 100px;">${m.name}</td>
-    <td style="position: sticky; left: 100px; background: white; z-index: 1; min-width: 120px;">${m.team}</td>
-    <td style="position: sticky; left: 220px; background: white; z-index: 1; min-width: 80px;"><strong>${m.total}</strong></td>
+    <td style="position: sticky; left: 100px; background: white; z-index: 1; min-width: 80px;"><strong>${m.total}</strong></td>
     ${dates.map(date => `<td style="min-width: 90px;">${m.scores[date]}</td>`).join("")}
   </tr>`;
 });
@@ -2952,15 +2981,6 @@ function showSelectionModal() {
   const player = voteOrder[currentPlayerIndex];
   const playerName = player?.name || "선택자";
 
-  const nameDiv = document.createElement("div");
-  nameDiv.textContent = `👤 ${playerName} 선생님 선택 중`;
-  nameDiv.style.fontSize = "1.1rem";
-  nameDiv.style.marginBottom = "1.1rem";
-  nameDiv.style.fontWeight = "bold";
-  nameDiv.style.width = "100%";
-  nameDiv.style.textAlign = "center";
-  content.appendChild(nameDiv);
-
   // ✅ 여기서 idx도 함께 받도록 수정
   openedEnvelopes.forEach((item, idx) => {
     const value = item?.value;
@@ -2980,7 +3000,7 @@ function showSelectionModal() {
     else if (position === "DF") icon = "🧱";
     else if (position === "MF") icon = "🏃🏿";
     else if (position === "FW") icon = "⚽";
-    else if (position === "REF") icon = "⚖️";
+    else if (position === "심판") icon = "⚖️";
     else if (position === "휴식") icon = "💤";
 
     btn.setAttribute("data-icon", icon);
@@ -3181,7 +3201,6 @@ function displayFinalTeamResults() {
 
     const wrapper = document.createElement("div");
     wrapper.className = "team-box";
-    wrapper.style.backgroundColor = colorMap[team];
 
         // ✅ 팀 제목 추가
       const title = document.createElement("div");
@@ -3245,100 +3264,100 @@ function displayFinalTeamResults() {
   }
 
   container.appendChild(teamWrapper);
+  updateDrawButtonsStatus();
 }
 
 
 function updateDrawButtonsStatus() {
   const result = JSON.parse(localStorage.getItem("finalTeamResults") || "{}");
 
-  const teamKeys = ["A", "B", "C"];
-  teamKeys.forEach((team) => {
-    const hasTeam = result[team] && result[team].length > 0;
-    const btn = document.getElementById(`drawTeam${team}Button`);
-    if (btn) {
-      btn.disabled = !hasTeam;
-      btn.style.opacity = hasTeam ? "1" : "0.4";
-      btn.style.cursor = hasTeam ? "pointer" : "not-allowed";
-    }
-  });
+  const aBtn = document.getElementById("drawTeamAButton");
+  const bBtn = document.getElementById("drawTeamBButton");
+  const cBtn = document.getElementById("drawTeamCButton");
+
+  const hasA = result.A && result.A.length > 0;
+  const hasB = result.B && result.B.length > 0;
+  const hasC = result.C && result.C.length > 0;
+
+  // A팀: 항상 가능
+  if (aBtn) {
+    aBtn.disabled = !hasA;
+    aBtn.style.opacity = hasA ? "1" : "0.4";
+    aBtn.style.cursor = hasA ? "pointer" : "not-allowed";
+  }
+
+  // B팀: 1팀 모드면 비활성화
+  if (bBtn) {
+    bBtn.disabled = !hasB;
+    bBtn.style.opacity = hasB ? "1" : "0.4";
+    bBtn.style.cursor = hasB ? "pointer" : "not-allowed";
+  }
+
+  // C팀: 팀 자체 없으면 비활성화
+  if (cBtn) {
+    cBtn.disabled = !hasC;
+    cBtn.style.opacity = hasC ? "1" : "0.4";
+    cBtn.style.cursor = hasC ? "pointer" : "not-allowed";
+  }
 }
 
 
-function resetEnvelopeSelection() {
-  const lastSelectedName = voteOrder[currentPlayerIndex - 1]?.name;
 
-  if (!lastSelectedName || !confirmedSelections[lastSelectedName]) {
-    alert("이전 선택 내역이 없습니다.");
+function resetEnvelopeSelection() {
+  const prevIndex = currentPlayerIndex - 1;
+  const player = voteOrder?.[prevIndex];
+  if (!player) {
+    alert("이전 선택자가 없습니다.");
     return;
   }
 
-  // ✅ 되돌리기
-  currentPlayerIndex--;
-  const playerName = lastSelectedName;
+  const playerName = player.name;
+  currentPlayerIndex = prevIndex;
 
-  // ✅ 선택값, 인덱스, 고정 쪽지 제거
-  const targetIndex = confirmedIndexesMap?.[playerName];
-  const selectedValue = confirmedSelections[playerName];
+  // ✅ confirmedSelections에서 삭제 (A/B/C 모두 확인)
+  for (const team of ["A", "B", "C"]) {
+    if (confirmedSelections?.[team]?.[playerName]) {
+      delete confirmedSelections[team][playerName];
+    }
+  }
 
-  if (typeof targetIndex === "number") {
-    confirmedIndexes = confirmedIndexes.filter(idx => idx !== targetIndex);
-    fixedNotes = fixedNotes.filter(f => f.index !== targetIndex);
+  // ✅ confirmedIndexesMap에서 제거
+  const indexToRemove = confirmedIndexesMap?.[playerName];
+  if (typeof indexToRemove === "number") {
+    confirmedIndexes = confirmedIndexes.filter(i => i !== indexToRemove);
+    fixedNotes = fixedNotes.filter(n => n.index !== indexToRemove);
     delete confirmedIndexesMap[playerName];
   }
 
-  delete confirmedSelections[playerName];
-
-  // ✅ finalTeamResults에서 제거
-  if (window.finalTeamResults) {
-    for (const team in finalTeamResults) {
+  // ✅ finalTeamResults에서도 제거
+  for (const team of ["A", "B", "C"]) {
+    if (Array.isArray(finalTeamResults?.[team])) {
       finalTeamResults[team] = finalTeamResults[team].filter(p => p.name !== playerName);
     }
-    localStorage.setItem("finalTeamResults", JSON.stringify(finalTeamResults));
   }
+  localStorage.setItem("finalTeamResults", JSON.stringify(finalTeamResults));
 
   // ✅ 실시간 테이블 갱신
   renderLiveTeamTable?.();
 
   // ✅ 쪽지 다시 셔플 (고정 제외)
-  shuffleAvailableNotes(); // 🎯 반드시 fixedNotes 기반으로 shuffledNotes 재생성
+  shuffleAvailableNotes();
 
-  // ✅ 이전 선택 쪽지 복원
-  openedEnvelopes = [{
-    index: targetIndex,
-    value: selectedValue
-  }];
+  // ✅ 이전 선택했던 openedEnvelopes 복원 (2~3장 전체)
+  if (!Array.isArray(lastSelections) || lastSelections.length === 0) {
+    alert("복원할 쪽지 정보가 없습니다.");
+    return;
+  }
+
+  openedEnvelopes = [...lastSelections];
   pickedIndexes = [];
 
-  // ✅ UI 갱신
+  // ✅ UI 재갱신
   renderEnvelopes();
   showSelectionModal();
-  setTimeout(() => showVotingInfo(), 200);
+  showVotingInfo();
 
-  console.log(`🔁 다시 선택: ${playerName}`);
-}
-
-function fullResetDraw() {
-  if (!confirm("정말 포지션 뽑기를 초기화하시겠습니까?")) return;
-
-  // ✅ 상태 초기화
-  currentPlayerIndex = 0;
-  pickedIndexes = [];
-  openedEnvelopes = [];
-  confirmedSelections = {};
-  confirmedIndexes = [];
-
-  // ✅ UI 초기화
-  renderEnvelopes();
-
-  // ✅ 최종 팀 결과 테이블 초기화
-  const resultTable = document.getElementById("teamDivisionResult");
-  if (resultTable) resultTable.innerHTML = "";
-
-  // ✅ 실시간 미리보기 테이블 초기화
-  const livePreview = document.getElementById("liveTeamPreview");
-  if (livePreview) livePreview.innerHTML = "";
-
-  console.log("♻️ 전체 포지션 뽑기 초기화 완료");
+  console.log(`🔁 다시 선택됨: ${playerName} / 복원된 openedEnvelopes 수: ${openedEnvelopes.length}`);
 }
 
 
@@ -3363,7 +3382,7 @@ function renderLiveTeamTable() {
 
   // ✅ A/B팀 나란히 출력
   let html = `
-    <div style="display: flex; flex-wrap: nowrap; justify-content: space-between; gap: 0.4rem; width: 100%; margin-top: 0.4rem;">
+    <div style="display: flex; flex-wrap: nowrap; justify-content: space-between; gap: 0.2rem; width: 100%; margin-top: 0.2rem;">
   `;
 
   for (const team of ["A", "B"]) {
@@ -3372,28 +3391,31 @@ function renderLiveTeamTable() {
       <div style="
         flex: 0 0 auto;
         width: 48%;
-        min-width: 200px;
+        min-width: 160px;
         max-width: 220px;
         box-sizing: border-box;
-        padding: 0.8rem;
+        padding: 0.2rem;
         border-radius: 10px;
         background: white;
         font-size: 1.15rem;
+        box-shadow: none;
       ">
-        <h4 style="text-align: center; font-size: 1.5rem; margin-bottom: 0.6rem;">${team}팀</h4>
+        <h4 style="text-align: center; font-size: 1.5rem; margin-bottom: 0.1rem;">${team}팀</h4>
         <table style="width: 100%; text-align: center; background: ${teamColors[team]}; font-size: 1.05rem; border-radius: 8px; border-collapse: collapse;">
-          <thead><tr><th>순</th><th>이름</th><th>포지션</th></tr></thead>
+          <thead>
+            <tr style="line-height: 1;">
+              <th style="padding: 0.25rem;">순</th>
+              <th style="padding: 0.25rem;">이름</th>
+              <th style="padding: 0.25rem;">포지션</th>
+            </tr>
+          </thead>
           <tbody>
     `;
-    if (members.length === 0) {
-      html += `
-        <tr><td colspan="3" style="color: #aaa; padding: 0.8rem;">아직 선택되지 않음</td></tr>
-      `;
-    } else {
-      members.forEach((p, i) => {
-        html += `<tr><td>${i + 1}</td><td>${p.name}</td><td>${p.position}</td></tr>`;
-      });
-    }
+    if (members.length > 0) {
+  members.forEach((p, i) => {
+    html += `<tr><td style="padding: 0.25rem;">${i + 1}</td><td style="padding: 0.25rem;">${p.name}</td><td style="padding: 0.25rem;">${p.position}</td></tr>`;
+  });
+}
     html += `</tbody></table></div>`;
   }
 
@@ -3403,12 +3425,12 @@ function renderLiveTeamTable() {
   const cMembers = teams["C"];
   if (cMembers.length > 0) {
     html += `
-      <div style="width: 100%; display: flex; justify-content: center; margin-top: 1.5rem;">
+      <div style="width: 100%; display: flex; justify-content: center; margin-top: 1rem;">
         <div style="
           width: 95%;
           max-width: 220px;
           box-sizing: border-box;
-          padding: 0.8rem;
+          padding: 0.4rem;
           border-radius: 10px;
           background: white;
           font-size: 1.15rem;
@@ -3798,65 +3820,91 @@ function startTeamDraw(team) {
 }
 function renderTeamDrawUI(team) {
   const korTeam = `${team}팀`;
-  const container = document.getElementById("matchDrawArea");
-  container.innerHTML = "";  // 초기화
+  const container = document.getElementById("teamDrawContent");
+  const overlay = document.getElementById("teamDrawOverlay");
+  container.innerHTML = "";
+  overlay.style.display = "block";
 
-  // ⚽ 타이틀
+  // 타이틀
   const title = document.createElement("h3");
   title.textContent = `${korTeam} 포지션 설정`;
   title.style.marginBottom = "1rem";
   container.appendChild(title);
 
-  // ✅ 선발 인원 수 입력
+  // 선발 인원 수 입력
+  const starterValue = finalTeamResults?.[team]?.length || 0;
   const starterDiv = document.createElement("div");
   starterDiv.innerHTML = `
     <label for="match${team}Starter">선발 인원 수: </label>
-    <input type="number" id="match${team}Starter" value="${finalTeamResults?.[team]?.length || 0}" min="1" style="width: 60px;">
+    <input type="number" id="match${team}Starter" value="${starterValue}" min="1" style="width: 60px;">
   `;
   container.appendChild(starterDiv);
 
-  // ✅ 포메이션 선택
+  // 포메이션 선택 (추천 + 사용자 지정 포함)
   const formationDiv = document.createElement("div");
   formationDiv.style.marginTop = "0.8rem";
   formationDiv.innerHTML = `
-    <label for="formation${team}Select">포메이션: </label>
+    <label><strong>${korTeam} 포메이션:</strong></label>
     <select id="formation${team}Select" onchange="toggleCustomFormation('${team}')">
-      <option value="4-4-2">4-4-2</option>
-      <option value="4-3-3">4-3-3</option>
-      <option value="3-3-4">3-3-4</option>
-      <option value="custom">사용자 지정</option>
+      <option value="">-- 추천 선택 --</option>
     </select>
+    <div id="formation${team}Custom" style="display: none; margin-top: 0.5rem;">
+      DF: <input type="number" id="df${team}" value="0" min="0" max="9" style="width: 28px; padding: 0; text-align: center;" />
+      MF: <input type="number" id="mf${team}" value="0" min="0" max="9" style="width: 28px; padding: 0; text-align: center;" />
+      FW: <input type="number" id="fw${team}" value="0" min="0" max="9" style="width: 28px; padding: 0; text-align: center;" />
+    </div>
+    <div id="remaining${team}" style="margin-top: 0.5rem; font-weight: bold;"></div>
   `;
   container.appendChild(formationDiv);
 
-  // ✅ 사용자 지정 포메이션 입력칸
-  const customDiv = document.createElement("div");
-  customDiv.id = `formation${team}Custom`;
-  customDiv.style.display = "none";
-  customDiv.style.marginTop = "0.5rem";
-  customDiv.innerHTML = `
-    <label>DF: <input type="number" id="df${team}" value="4" style="width: 40px;"></label>
-    <label>MF: <input type="number" id="mf${team}" value="4" style="width: 40px;"></label>
-    <label>FW: <input type="number" id="fw${team}" value="2" style="width: 40px;"></label>
-    <span id="remaining${team}" style="margin-left: 1rem; font-weight: bold;"></span>
-  `;
-  container.appendChild(customDiv);
+  // ✅ 포지션 추천은 모든 요소가 추가된 뒤 호출 (순서 중요!)
+  setTimeout(() => suggestFormation(team), 0);
 
-  // ✅ 포지션 뽑기 버튼
+  // 포지션 뽑기 버튼
   const drawBtn = document.createElement("button");
   drawBtn.textContent = "포지션 뽑기 시작";
   drawBtn.style.marginTop = "1rem";
   drawBtn.style.padding = "0.7rem 1.5rem";
   drawBtn.style.fontSize = "1rem";
   drawBtn.onclick = () => {
-  if (!team) {
-    alert("팀 정보가 없습니다.");
-    return;
-  }
-  drawMatchPositions(team);
-};
+    if (!team) {
+      alert("팀 정보가 없습니다.");
+      return;
+    }
+    drawMatchPositions(team);
+  };
   container.appendChild(drawBtn);
+  // ✅ 현재 팀 명단 표 출력
+const teamMembers = finalTeamResults?.[team] || [];
+if (teamMembers.length > 0) {
+  const tableTitle = document.createElement("h4");
+  tableTitle.textContent = `${korTeam} 명단`;
+  tableTitle.style.marginTop = "1.5rem";
+  container.appendChild(tableTitle);
+
+  const table = document.createElement("table");
+  table.style.width = "100%";
+  table.style.borderCollapse = "collapse";
+  table.style.marginTop = "0.5rem";
+  table.innerHTML = `
+    <thead>
+      <tr style="background:#eee;"><th>순</th><th>성명</th><th>포지션</th></tr>
+    </thead>
+    <tbody>
+      ${teamMembers.map((p, i) => `
+        <tr>
+          <td style="text-align:center;">${i + 1}</td>
+          <td style="text-align:center;">${p.name}</td>
+          <td style="text-align:center;">${p.position || "-"}</td>
+        </tr>
+      `).join("")}
+    </tbody>
+  `;
+  container.appendChild(table);
 }
+
+}
+
 function sortTeamByCustomRule(teamPlayers) {
   const nameToOrder = {};
   voteOrder.forEach((player, idx) => {
@@ -4116,6 +4164,9 @@ function processLeave() {
   clearTeamChangeForm();
   displayFinalTeamResults();
 }
+function closeTeamDrawOverlay() {
+  document.getElementById("teamDrawOverlay").style.display = "none";
+}
 
 
 
@@ -4160,8 +4211,6 @@ window.addEventListener("DOMContentLoaded", () => {
   background: white;
   z-index: 99999;
   padding: 1rem;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
   width: 90%;
   max-width: 600px;
   text-align: center;
@@ -4177,38 +4226,60 @@ window.addEventListener("DOMContentLoaded", () => {
     </div>
     <!-- 쪽지 선택 전체 모달 -->
 <div id="envelopeModal" style="
-  display:none;
-  position:fixed;
-  top:0;
-  left:0;
-  width:100vw;
-  height:100vh;
-  background:white; /* ✅ 흰색 배경 */
-  z-index:9999;
-
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: center;
-
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;                /* ✅ 100vw → 100% 로 수정 */
+  height: 100%;
+  background: white;
+  z-index: 9999;
+  box-sizing: border-box;     /* ✅ padding 포함 너비 계산 */
+  padding: 0.2rem;              /* 내부 여백 유지 */
   overflow-y: auto;
-  overflow-x: hidden;         /* ✅ 가로 스크롤 방지 */
-  box-sizing: border-box;     /* ✅ padding이 너비에 포함되도록 */
-  padding: 1rem;              /* ✅ 안전하게 내부 여백 추가 */
-  ">
+  overflow-x: hidden;
+  flex-direction: column;
+  align-items: center;        /* ✅ 내부 콘텐츠 중앙 정렬 */
+  justify-content: flex-start;
+">
 
-  <div style="width:100%; max-width:700px; padding:1rem; color:white; text-align:center;">
-    <h2 id="drawPlayerInfo" style="font-size:1.5rem; color: black;">👤 현재 플레이어 이름</h2>
-    <div id="envelopeArea" style="margin-top:1rem;"></div>
+
+<div style="
+  width: 100%;
+  max-width: 700px;
+  padding: 0.2rem;
+  color: white;
+  text-align: center;
+  margin: 0 auto;  /* ✅ 이 줄을 반드시 추가하세요 */
+">
+    <h2 id="drawPlayerInfo" style="
+      font-size: 1.5rem;
+      color: black;
+      margin-top: 0;
+      margin-bottom: 0.6rem;
+    ">
+    </h2>
+    <div id="envelopeArea" style="
+  display: none;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 0.4rem;
+  width: 100%;
+  max-width: 700px;
+  margin: 1rem auto 0 auto;
+">
+</div>
   </div>
   <!-- 모달 내부 버튼 (선택 모달 하단에 위치) -->
-  <div id="selectionButtons" style="margin-top: 1rem; text-align: center;">
-    <button onclick="resetEnvelopeSelection()" style="padding: 0.6rem 1rem; font-size: 1.1rem; margin-right: 10px;">
+  <div id="selectionButtons" style="margin-top: 0.3rem; text-align: center;">
+    <button onclick="resetEnvelopeSelection()" style="padding: 0.5rem 0.9rem; font-size: 1.1rem; margin-right: 10px;">
       🔄 다시 선택
     </button>
-    <button onclick="fullResetDraw()" style="padding: 0.6rem 1rem; font-size: 1.1rem;">
+    <button onclick="fullResetDraw()" style="padding: 0.5rem 0.8rem; font-size: 1.1rem;">
       ♻️ 초기화
     </button>
-    <button onclick="cancelPositionDraw()" style="padding: 0.6rem 1rem; font-size: 1.1rem; margin-left: 10px;">
+    <button onclick="cancelPositionDraw()" style="padding: 0.5rem 0.9rem; font-size: 1.1rem; margin-left: 10px;">
     ❌ 뽑기 취소
   </button>
   </div>
